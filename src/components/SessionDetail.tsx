@@ -1,0 +1,142 @@
+import React from "react";
+import { Box, Text, useInput } from "ink";
+import type { SessionDetail as SessionDetailType, ExportOptions } from "../lib/types";
+
+interface SessionDetailProps {
+  session: SessionDetailType;
+  exportOptions: ExportOptions;
+  onBack: () => void;
+  onExport: (format: "text" | "html") => void;
+}
+
+export function SessionDetail({ session, exportOptions, onBack, onExport }: SessionDetailProps) {
+  useInput((input, key) => {
+    if (key.escape || input === "q") {
+      onBack();
+    }
+    if (input === "t") {
+      onExport("text");
+    }
+    if (input === "h") {
+      onExport("html");
+    }
+  });
+
+  const filteredMessages = session.messages.filter((msg) => {
+    if (msg.type === "user" && !exportOptions.includeUser) return false;
+    if (msg.type === "assistant" && !exportOptions.includeAssistant) return false;
+    if ((msg.type === "tool_use" || msg.type === "tool_result") && !exportOptions.includeToolUse) return false;
+    if (msg.type === "thinking" && !exportOptions.includeThinking) return false;
+    return true;
+  });
+
+  return (
+    <Box flexDirection="column">
+      {/* メタ情報 */}
+      <Box borderStyle="single" borderColor="gray" flexDirection="column" paddingX={1}>
+        <Text bold color="cyan">Session Info</Text>
+        <Text>
+          <Text dimColor>ID: </Text>
+          <Text>{session.id}</Text>
+        </Text>
+        <Text>
+          <Text dimColor>Type: </Text>
+          <Text>{session.agentType}</Text>
+        </Text>
+        <Text>
+          <Text dimColor>Date: </Text>
+          <Text>{session.timestamp.toLocaleString("ja-JP")}</Text>
+        </Text>
+        {session.cwd && (
+          <Text>
+            <Text dimColor>CWD: </Text>
+            <Text>{session.cwd}</Text>
+          </Text>
+        )}
+        {session.gitBranch && (
+          <Text>
+            <Text dimColor>Branch: </Text>
+            <Text>{session.gitBranch}</Text>
+          </Text>
+        )}
+        {session.version && (
+          <Text>
+            <Text dimColor>Version: </Text>
+            <Text>{session.version}</Text>
+          </Text>
+        )}
+        {session.model && (
+          <Text>
+            <Text dimColor>Model: </Text>
+            <Text>{session.model}</Text>
+          </Text>
+        )}
+      </Box>
+
+      {/* 操作説明 */}
+      <Box marginY={1}>
+        <Text dimColor>[q/ESC] Back  [t] Export Text  [h] Export HTML</Text>
+      </Box>
+
+      {/* 会話履歴 */}
+      <Box flexDirection="column" marginTop={1}>
+        <Text bold color="cyan">Messages ({filteredMessages.length})</Text>
+        {filteredMessages.slice(0, 20).map((msg, i) => (
+          <MessageItem key={i} message={msg} />
+        ))}
+        {filteredMessages.length > 20 && (
+          <Text dimColor>... and {filteredMessages.length - 20} more messages</Text>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+interface MessageItemProps {
+  message: {
+    type: string;
+    content: string;
+    toolName?: string;
+  };
+}
+
+function MessageItem({ message }: MessageItemProps) {
+  const roleColors: Record<string, string> = {
+    user: "green",
+    assistant: "blue",
+    tool_use: "yellow",
+    tool_result: "magenta",
+    thinking: "gray",
+  };
+
+  const roleLabels: Record<string, string> = {
+    user: "USER",
+    assistant: "ASST",
+    tool_use: "TOOL",
+    tool_result: "RESULT",
+    thinking: "THINK",
+  };
+
+  const color = roleColors[message.type] || "white";
+  const label = roleLabels[message.type] || message.type.toUpperCase();
+
+  // コンテンツを短縮表示
+  const shortContent = message.content
+    .replace(/\n/g, " ")
+    .slice(0, 80);
+
+  return (
+    <Box>
+      <Box width={8}>
+        <Text color={color} bold>[{label}]</Text>
+      </Box>
+      <Box flexShrink={1}>
+        <Text wrap="truncate">
+          {message.toolName && <Text dimColor>{message.toolName}: </Text>}
+          {shortContent}
+          {message.content.length > 80 && <Text dimColor>...</Text>}
+        </Text>
+      </Box>
+    </Box>
+  );
+}

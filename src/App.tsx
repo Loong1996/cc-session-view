@@ -103,7 +103,8 @@ export function App() {
         : exportToHtml(selectedSession, exportOptions);
 
     const ext = format === "text" ? "txt" : "html";
-    const filename = `session-${selectedSession.id.slice(0, 8)}.${ext}`;
+    const agentName = selectedSession.agentType === "claude-code" ? "claude" : "codex";
+    const filename = `session-${agentName}-${selectedSession.id.slice(0, 8)}.${ext}`;
     const exportDir = "./exported";
     const filepath = `${exportDir}/${filename}`;
 
@@ -125,7 +126,8 @@ export function App() {
     if (!selectedSession) return;
 
     const content = exportToHtml(selectedSession, exportOptions);
-    const filename = `session-${selectedSession.id.slice(0, 8)}-${Date.now()}.html`;
+    const agentName = selectedSession.agentType === "claude-code" ? "claude" : "codex";
+    const filename = `session-${agentName}-${selectedSession.id.slice(0, 8)}-${Date.now()}.html`;
     const tmpDir = process.env.TMPDIR || "/tmp";
     const filepath = `${tmpDir}/${filename}`;
 

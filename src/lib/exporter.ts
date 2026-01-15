@@ -75,36 +75,52 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
   <title>${agentLabel} Session</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --ink: #1a1a2e;
-      --ink-soft: #2d2d44;
-      --ink-muted: #6b6b8a;
-      --paper: #fafafa;
-      --paper-warm: #f5f4f0;
-      --paper-cool: #f0f4f8;
+      /* Theme colors */
+      --peko-blue: #00BFFF;
+      --peko-blue-light: #E6F9FF;
+      --peko-blue-soft: rgba(0, 191, 255, 0.15);
+      --carrot-orange: #FFA500;
+      --carrot-orange-light: #FFF5E6;
+      --usa-white: #FFFFFF;
+      --peko-pink: #FFC0CB;
+      --peko-pink-deep: #FF8FA3;
+      --peko-pink-light: #FFF0F3;
+      --leaf-green: #228B22;
+      --leaf-green-light: #E8F5E8;
 
-      --accent-user: #2d6a4f;
-      --accent-assistant: #1d4ed8;
-      --accent-tool: #b45309;
-      --accent-result: #7c3aed;
-      --accent-thinking: #64748b;
+      /* UI colors */
+      --bg-base: #FAFCFD;
+      --bg-surface: var(--usa-white);
+      --text-primary: #2D3748;
+      --text-secondary: #5A6A7A;
+      --text-muted: #8899AA;
+      --border-light: rgba(0, 191, 255, 0.2);
 
-      --user-bg: #d8f3dc;
-      --assistant-bg: #dbeafe;
-      --tool-bg: #fef3c7;
-      --result-bg: #ede9fe;
-      --thinking-bg: #f1f5f9;
+      /* Message colors */
+      --user-accent: var(--leaf-green);
+      --user-bg: var(--leaf-green-light);
+      --assistant-accent: var(--peko-blue);
+      --assistant-bg: var(--peko-blue-light);
+      --tool-accent: var(--carrot-orange);
+      --tool-bg: var(--carrot-orange-light);
+      --result-accent: var(--peko-pink-deep);
+      --result-bg: var(--peko-pink-light);
+      --thinking-accent: #94A3B8;
+      --thinking-bg: #F1F5F9;
 
-      --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
-      --font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
+      --font-sans: 'Nunito', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
 
       --space-xs: 4px;
       --space-sm: 8px;
       --space-md: 16px;
       --space-lg: 24px;
       --space-xl: 40px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
     }
 
     * {
@@ -114,19 +130,33 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     }
 
     html {
-      font-size: 15px;
+      font-size: 16px;
     }
 
     body {
       font-family: var(--font-sans);
-      background: var(--paper);
-      color: var(--ink);
+      background: var(--bg-base);
+      color: var(--text-primary);
       line-height: 1.6;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
     }
 
+    /* Subtle background pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 25%, rgba(0, 191, 255, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 85% 75%, rgba(255, 192, 203, 0.05) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
     .page {
+      position: relative;
+      z-index: 1;
       max-width: 1000px;
       margin: 0 auto;
       padding: var(--space-xl) var(--space-lg);
@@ -134,49 +164,57 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
 
     /* === HEADER === */
     .hdr {
-      margin-bottom: var(--space-xl);
+      margin-bottom: var(--space-lg);
       padding-bottom: var(--space-lg);
-      border-bottom: 2px solid var(--ink);
+      border-bottom: 2px solid var(--border-light);
     }
 
     .hdr-top {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: var(--space-md);
-      margin-bottom: var(--space-md);
+      margin-bottom: var(--space-sm);
     }
 
     .hdr-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-family: var(--font-mono);
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      padding: var(--space-xs) var(--space-sm);
-      background: var(--ink);
-      color: var(--paper);
+      letter-spacing: 0.05em;
+      padding: 6px 12px;
+      background: linear-gradient(135deg, var(--peko-blue) 0%, #00A0D0 100%);
+      color: white;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0, 191, 255, 0.25);
+    }
+
+    .hdr-badge::before {
+      content: '🐰';
+      font-size: 0.9rem;
     }
 
     .hdr-title {
-      font-size: 1.8rem;
+      font-size: 1.6rem;
       font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--ink);
+      color: var(--text-primary);
     }
 
     .hdr-id {
       font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--ink-muted);
-      margin-bottom: var(--space-lg);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: var(--space-md);
     }
 
-    /* Meta Info - Horizontal scroll for long values */
+    /* Meta Info */
     .meta-list {
       display: flex;
       flex-wrap: wrap;
       gap: var(--space-sm) var(--space-lg);
-      font-size: 0.85rem;
     }
 
     .meta-item {
@@ -192,14 +230,14 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--ink-muted);
+      color: var(--peko-blue);
       flex-shrink: 0;
     }
 
     .meta-val {
       font-family: var(--font-mono);
-      font-size: 0.8rem;
-      color: var(--ink);
+      font-size: 0.85rem;
+      color: var(--text-primary);
       overflow-x: auto;
       white-space: nowrap;
       scrollbar-width: thin;
@@ -211,7 +249,7 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     }
 
     .meta-val::-webkit-scrollbar-thumb {
-      background: var(--ink-muted);
+      background: var(--peko-blue-soft);
       border-radius: 2px;
     }
 
@@ -221,45 +259,50 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     }
 
     .msg-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-family: var(--font-mono);
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--ink-muted);
+      color: var(--peko-pink-deep);
       margin-bottom: var(--space-md);
-      padding: var(--space-xs) 0;
-      border-bottom: 1px solid var(--ink-soft);
+      padding: 4px 12px;
+      background: var(--peko-pink-light);
+      border-radius: 12px;
+    }
+
+    .msg-count::before {
+      content: '💬';
+      font-size: 0.8rem;
     }
 
     .msg {
       display: grid;
-      grid-template-columns: 28px 1fr;
+      grid-template-columns: 32px 1fr;
       gap: var(--space-sm);
-      margin-bottom: 2px;
+      margin-bottom: 3px;
       position: relative;
     }
 
     .msg + .msg {
-      border-top: 1px dashed rgba(0,0,0,0.08);
-      padding-top: 2px;
+      padding-top: 3px;
     }
 
     .msg-indicator {
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding-top: var(--space-xs);
+      padding-top: 6px;
     }
 
     .msg-abbr {
       font-family: var(--font-mono);
-      font-size: 0.6rem;
-      font-weight: 600;
+      font-size: 0.65rem;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.02em;
-      padding: 2px 4px;
-      border-radius: 2px;
+      padding: 3px 6px;
+      border-radius: var(--radius-sm);
       line-height: 1;
     }
 
@@ -271,40 +314,40 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       display: flex;
       align-items: center;
       gap: var(--space-sm);
-      min-height: 20px;
+      min-height: 22px;
       margin-bottom: 2px;
     }
 
     .tool-tag {
       font-family: var(--font-mono);
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-weight: 500;
-      padding: 1px 6px;
-      background: rgba(0,0,0,0.06);
-      border-radius: 2px;
-      color: var(--ink-soft);
+      padding: 2px 8px;
+      background: rgba(255, 165, 0, 0.15);
+      border-radius: var(--radius-sm);
+      color: var(--carrot-orange);
     }
 
     .expand-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       margin-left: auto;
-      background: transparent;
-      border: 1px solid var(--ink-muted);
-      border-radius: 2px;
-      color: var(--ink-muted);
-      font-size: 0.6rem;
+      background: var(--peko-blue-light);
+      border: 1px solid var(--peko-blue);
+      border-radius: var(--radius-sm);
+      color: var(--peko-blue);
+      font-size: 0.65rem;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.2s ease;
     }
 
     .expand-btn:hover {
-      background: var(--ink);
-      color: var(--paper);
-      border-color: var(--ink);
+      background: var(--peko-blue);
+      color: white;
+      transform: scale(1.05);
     }
 
     .expand-btn[data-expanded="true"] .expand-icon {
@@ -316,13 +359,14 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     }
 
     .msg-text {
-      padding: var(--space-xs) var(--space-sm);
-      border-radius: 3px;
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-md);
       transition: max-height 0.3s ease;
+      border-left: 3px solid transparent;
     }
 
     .msg-text.is-collapsed {
-      max-height: 120px;
+      max-height: 140px;
       overflow: hidden;
       position: relative;
     }
@@ -333,28 +377,29 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       bottom: 0;
       left: 0;
       right: 0;
-      height: 40px;
-      background: linear-gradient(to bottom, transparent, var(--paper));
+      height: 50px;
+      background: linear-gradient(to bottom, transparent, var(--bg-base));
       pointer-events: none;
     }
 
     .msg-text pre {
       font-family: var(--font-mono);
-      font-size: 0.8rem;
-      line-height: 1.5;
+      font-size: 0.875rem;
+      line-height: 1.6;
       white-space: pre-wrap;
       word-wrap: break-word;
-      color: var(--ink);
+      color: var(--text-primary);
       margin: 0;
     }
 
     /* === MESSAGE TYPE STYLES === */
     .user .msg-abbr {
       background: var(--user-bg);
-      color: var(--accent-user);
+      color: var(--user-accent);
     }
     .user .msg-text {
       background: var(--user-bg);
+      border-left-color: var(--user-accent);
     }
     .user .msg-text.is-collapsed::after {
       background: linear-gradient(to bottom, transparent, var(--user-bg));
@@ -362,10 +407,11 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
 
     .assistant .msg-abbr {
       background: var(--assistant-bg);
-      color: var(--accent-assistant);
+      color: var(--assistant-accent);
     }
     .assistant .msg-text {
       background: var(--assistant-bg);
+      border-left-color: var(--assistant-accent);
     }
     .assistant .msg-text.is-collapsed::after {
       background: linear-gradient(to bottom, transparent, var(--assistant-bg));
@@ -373,10 +419,11 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
 
     .tool-use .msg-abbr {
       background: var(--tool-bg);
-      color: var(--accent-tool);
+      color: var(--tool-accent);
     }
     .tool-use .msg-text {
       background: var(--tool-bg);
+      border-left-color: var(--tool-accent);
     }
     .tool-use .msg-text.is-collapsed::after {
       background: linear-gradient(to bottom, transparent, var(--tool-bg));
@@ -384,10 +431,11 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
 
     .tool-result .msg-abbr {
       background: var(--result-bg);
-      color: var(--accent-result);
+      color: var(--result-accent);
     }
     .tool-result .msg-text {
       background: var(--result-bg);
+      border-left-color: var(--result-accent);
     }
     .tool-result .msg-text.is-collapsed::after {
       background: linear-gradient(to bottom, transparent, var(--result-bg));
@@ -395,13 +443,14 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
 
     .thinking .msg-abbr {
       background: var(--thinking-bg);
-      color: var(--accent-thinking);
+      color: var(--thinking-accent);
     }
     .thinking .msg-text {
       background: var(--thinking-bg);
+      border-left-color: var(--thinking-accent);
     }
     .thinking .msg-text pre {
-      color: var(--ink-muted);
+      color: var(--text-muted);
       font-style: italic;
     }
     .thinking .msg-text.is-collapsed::after {
@@ -410,41 +459,49 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
 
     /* === SCROLLBAR === */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
     }
     ::-webkit-scrollbar-track {
-      background: transparent;
+      background: var(--peko-blue-light);
+      border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb {
-      background: var(--ink-muted);
-      border-radius: 3px;
+      background: linear-gradient(180deg, var(--peko-blue), var(--peko-pink));
+      border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: var(--ink-soft);
+      background: var(--peko-blue);
     }
 
     /* === FOOTER === */
     .ftr {
       margin-top: var(--space-xl);
       padding-top: var(--space-md);
-      border-top: 1px solid var(--ink-muted);
+      border-top: 2px dashed var(--border-light);
       text-align: center;
       font-family: var(--font-mono);
-      font-size: 0.7rem;
-      color: var(--ink-muted);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .ftr::before {
+      content: '🐰🥕';
+      display: block;
+      font-size: 1.2rem;
+      margin-bottom: 6px;
     }
 
     /* === RESPONSIVE === */
     @media (max-width: 640px) {
       html {
-        font-size: 14px;
+        font-size: 15px;
       }
       .page {
         padding: var(--space-lg) var(--space-md);
       }
       .hdr-title {
-        font-size: 1.4rem;
+        font-size: 1.3rem;
       }
       .meta-list {
         flex-direction: column;
@@ -452,6 +509,9 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       }
       .meta-val {
         max-width: calc(100vw - 120px);
+      }
+      .msg {
+        grid-template-columns: 28px 1fr;
       }
     }
 
@@ -464,6 +524,9 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
         max-height: none;
       }
       .msg-text.is-collapsed::after {
+        display: none;
+      }
+      body::before {
         display: none;
       }
     }

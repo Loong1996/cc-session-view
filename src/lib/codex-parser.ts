@@ -77,17 +77,20 @@ async function parseCodexJsonlSessionSummary(filePath: string): Promise<SessionS
         }
       }
 
-      // 最初のユーザーメッセージを探す
+      // 最初のユーザーメッセージを探す（タイトル用にスキップすべきものは除外）
       if (record.type === "response_item" && record.payload?.role === "user" && !firstUserMessage) {
         const content = extractCodexMessageContent(record.payload);
-        if (content) {
+        if (content && !shouldSkipForTitle(content)) {
           firstUserMessage = content;
         }
       }
 
       // event_msg からもユーザーメッセージを取得
       if (record.type === "event_msg" && record.payload?.type === "user_message" && !firstUserMessage) {
-        firstUserMessage = record.payload.message;
+        const msg = record.payload.message;
+        if (msg && !shouldSkipForTitle(msg)) {
+          firstUserMessage = msg;
+        }
       }
     } catch {
       // JSON パースエラーは無視
@@ -129,7 +132,7 @@ async function parseCodexJsonSessionSummary(filePath: string): Promise<SessionSu
     for (const item of data.items) {
       if (item.role === "user" && item.type === "message") {
         const content = extractCodexMessageContent(item);
-        if (content) {
+        if (content && !shouldSkipForTitle(content)) {
           firstUserMessage = content;
           break;
         }
@@ -188,6 +191,11 @@ function parseCodexJsonlSessionDetail(filePath: string, text: string): SessionDe
         if (record.payload.git) {
           gitBranch = record.payload.git.branch;
         }
+      }
+
+      // turn_context から最初のモデル情報を取得
+      if (record.type === "turn_context" && record.payload?.model && !model) {
+        model = record.payload.model;
       }
 
       // response_item からメッセージを取得
@@ -311,7 +319,11 @@ function parseCodexJsonSessionDetail(filePath: string, text: string): SessionDet
 function extractCodexMessageContent(message: Record<string, unknown>): string | null {
   if (Array.isArray(message.content)) {
     for (const block of message.content) {
+      // user: input_text, assistant: output_text, both: text
       if (block.type === "input_text" && typeof block.text === "string") {
+        return block.text;
+      }
+      if (block.type === "output_text" && typeof block.text === "string") {
         return block.text;
       }
       if (block.type === "text" && typeof block.text === "string") {
@@ -323,4 +335,10 @@ function extractCodexMessageContent(message: Record<string, unknown>): string | 
     return message.content;
   }
   return null;
+}
+
+/** タイトルに使用すべきでないメッセージかどうかを判定 */
+function shouldSkipForTitle(content: string): boolean {
+  const trimmed = content.trim();
+  return trimmed.startsWith("# AGENTS.md") || trimmed.startsWith("<environment_context>");
 }

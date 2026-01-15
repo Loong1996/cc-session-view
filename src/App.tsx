@@ -25,7 +25,7 @@ export function App() {
   const [selectedSession, setSelectedSession] = useState<SessionDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [exportOptions] = useState<ExportOptions>(defaultExportOptions);
+  const [exportOptions, setExportOptions] = useState<ExportOptions>(defaultExportOptions);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   // セッション一覧を読み込み
@@ -120,6 +120,27 @@ export function App() {
     }
   }
 
+  // ブラウザで表示するハンドラ
+  async function handleViewInBrowser() {
+    if (!selectedSession) return;
+
+    const content = exportToHtml(selectedSession, exportOptions);
+    const filename = `session-${selectedSession.id.slice(0, 8)}-${Date.now()}.html`;
+    const tmpDir = process.env.TMPDIR || "/tmp";
+    const filepath = `${tmpDir}/${filename}`;
+
+    try {
+      await Bun.write(filepath, content);
+      // open コマンドでブラウザを起動
+      const proc = Bun.spawn(["open", filepath]);
+      await proc.exited;
+      setStatusMessage(`Opened in browser: ${filepath}`);
+      setTimeout(() => setStatusMessage(null), 3000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to open in browser");
+    }
+  }
+
   const currentSessions = activeTab === "claude-code" ? claudeSessions : codexSessions;
 
   return (
@@ -175,8 +196,10 @@ export function App() {
         <SessionDetail
           session={selectedSession}
           exportOptions={exportOptions}
+          onChangeOptions={setExportOptions}
           onBack={handleBack}
           onExport={handleExport}
+          onViewInBrowser={handleViewInBrowser}
         />
       ) : null}
     </Box>

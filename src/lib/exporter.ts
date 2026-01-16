@@ -1,4 +1,12 @@
-import type { ExportOptions, Message, SessionDetail } from "./types"
+import type { BranchMessage, ExportOptions, Message, SessionDetail } from "./types"
+
+/** Branch session info for export */
+export interface BranchSession {
+  id: string
+  agentType: "claude-code" | "codex"
+  timestamp: Date
+  cwd?: string
+}
 
 /** Export to plain text format */
 export function exportToText(session: SessionDetail, options: ExportOptions): string {
@@ -880,6 +888,8 @@ function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number
 
 function filterMessages(messages: Message[], options: ExportOptions): Message[] {
   return messages.filter((msg) => {
+    // Filter system messages first
+    if (msg.isSystemMessage && !options.includeSystemMessages) return false
     if (msg.type === "user" && !options.includeUser) return false
     if (msg.type === "assistant" && !options.includeAssistant) return false
     if ((msg.type === "tool_use" || msg.type === "tool_result") && !options.includeToolUse)
@@ -929,4 +939,642 @@ function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;")
+}
+
+/** Export branch to plain text format */
+export function exportBranchToText(
+  branchName: string,
+  sessions: BranchSession[],
+  messages: BranchMessage[],
+  options: ExportOptions,
+): string {
+  const lines: string[] = []
+
+  // Header
+  lines.push("=".repeat(60))
+  lines.push(`Branch: ${branchName}`)
+  lines.push(`Sessions: ${sessions.length}`)
+  lines.push("=".repeat(60))
+  lines.push("")
+
+  // Group messages by session
+  const messagesBySession = new Map<string, BranchMessage[]>()
+  for (const msg of messages) {
+    const existing = messagesBySession.get(msg.sessionId)
+    if (existing) {
+      existing.push(msg)
+    } else {
+      messagesBySession.set(msg.sessionId, [msg])
+    }
+  }
+
+  // Render each session's messages
+  let isFirst = true
+  for (const session of sessions) {
+    const sessionMessages = messagesBySession.get(session.id) || []
+    const filteredMessages = filterBranchMessages(sessionMessages, options)
+
+    if (filteredMessages.length === 0) continue
+
+    if (!isFirst) {
+      lines.push("")
+      lines.push("-".repeat(40))
+      lines.push("")
+    }
+    isFirst = false
+
+    const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI"
+    lines.push(`===== SESSION: ${session.id.slice(0, 8)} =====`)
+    lines.push(`Type: ${agentLabel}`)
+    lines.push(`Date: ${session.timestamp.toLocaleString("ja-JP")}`)
+    if (session.cwd) lines.push(`CWD: ${session.cwd}`)
+    lines.push("")
+
+    for (const msg of filteredMessages) {
+      const label = getMessageLabel(msg.type)
+      lines.push(`[${label}]`)
+      if (msg.toolName) {
+        lines.push(`Tool: ${msg.toolName}`)
+      }
+      lines.push(msg.content)
+      lines.push("")
+    }
+  }
+
+  return lines.join("\n")
+}
+
+/** Export branch to HTML format */
+export function exportBranchToHtml(
+  branchName: string,
+  sessions: BranchSession[],
+  messages: BranchMessage[],
+  options: ExportOptions,
+): string {
+  // Group messages by session
+  const messagesBySession = new Map<string, BranchMessage[]>()
+  for (const msg of messages) {
+    const existing = messagesBySession.get(msg.sessionId)
+    if (existing) {
+      existing.push(msg)
+    } else {
+      messagesBySession.set(msg.sessionId, [msg])
+    }
+  }
+
+  // Build HTML for all sessions
+  let allMessagesHtml = ""
+  let globalIndex = 0
+
+  for (const session of sessions) {
+    const sessionMessages = messagesBySession.get(session.id) || []
+    const filteredMessages = filterBranchMessages(sessionMessages, options)
+
+    if (filteredMessages.length === 0) continue
+
+    const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI"
+    const timestamp = session.timestamp.toLocaleString("ja-JP")
+
+    // Session boundary
+    allMessagesHtml += `
+      <div class="session-boundary">
+        <span class="boundary-line"></span>
+        <span class="boundary-label">${agentLabel} • ${escapeHtml(session.id.slice(0, 8))} • ${timestamp}</span>
+        <span class="boundary-line"></span>
+      </div>
+    `
+
+    // Project BranchMessage to Message for reuse
+    const projectedMessages: Message[] = filteredMessages.map((m) => ({
+      type: m.type,
+      content: m.content,
+      timestamp: m.timestamp,
+      toolName: m.toolName,
+      toolId: m.toolId,
+    }))
+
+    // Group consecutive assistant messages
+    const messageGroups = groupConsecutiveAssistantMessages(projectedMessages)
+
+    for (const group of messageGroups) {
+      if (group.type === "single") {
+        allMessagesHtml += renderSingleMessage(group.message, globalIndex)
+        globalIndex++
+      } else {
+        allMessagesHtml += renderConsecutiveAssistantGroupForBranch(group.messages, globalIndex)
+        globalIndex += group.messages.length
+      }
+    }
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Branch: ${escapeHtml(branchName)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    ${getBranchHtmlStyles()}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hdr">
+      <div class="hdr-top">
+        <span class="hdr-badge">🌿 Branch</span>
+        <h1 class="hdr-title">${escapeHtml(branchName)}</h1>
+      </div>
+      <div class="meta-list">
+        <div class="meta-item">
+          <span class="meta-key">Sessions</span>
+          <span class="meta-val">${sessions.length}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-key">Messages</span>
+          <span class="meta-val">${messages.length}</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="msg-section">
+      ${allMessagesHtml}
+    </section>
+
+    <footer class="ftr">
+      Generated by Agent Session Print
+    </footer>
+  </div>
+
+  <script>
+    function toggleMsg(index) {
+      const text = document.querySelector('#msg-' + index + ' .msg-text');
+      const btn = document.querySelector('#msg-' + index + ' .expand-btn');
+      if (!text || !btn) return;
+      const isCollapsed = text.classList.contains('is-collapsed');
+
+      if (isCollapsed) {
+        text.classList.remove('is-collapsed');
+        btn.setAttribute('data-expanded', 'true');
+      } else {
+        text.classList.add('is-collapsed');
+        btn.setAttribute('data-expanded', 'false');
+      }
+    }
+
+    function toggleHiddenGroup(groupId) {
+      const group = document.getElementById(groupId);
+      if (!group) return;
+      const btn = group.querySelector('.show-hidden-btn');
+      const container = group.querySelector('.hidden-messages-container');
+      const countSpan = group.querySelector('.hidden-count');
+      if (!btn || !container || !countSpan) return;
+
+      const isExpanded = btn.getAttribute('data-expanded') === 'true';
+      const hiddenCount = container.querySelectorAll('.msg').length;
+
+      if (isExpanded) {
+        container.classList.remove('is-visible');
+        btn.setAttribute('data-expanded', 'false');
+        countSpan.textContent = hiddenCount + '件のメッセージを表示';
+      } else {
+        container.classList.add('is-visible');
+        btn.setAttribute('data-expanded', 'true');
+        countSpan.textContent = hiddenCount + '件のメッセージを非表示';
+      }
+    }
+  </script>
+</body>
+</html>`
+}
+
+function renderConsecutiveAssistantGroupForBranch(messages: Message[], startIndex: number): string {
+  const groupId = `assistant-group-${startIndex}`
+  const hiddenCount = messages.length - 2
+  const typeLabel = getMessageLabel("assistant")
+  const typeAbbr = getMessageAbbr("assistant")
+
+  const firstMsg = messages[0]!
+  const firstContent = escapeHtml(firstMsg.content)
+  const firstIsLong = firstMsg.content.length > 800
+  const firstIndex = startIndex
+
+  const lastMsg = messages[messages.length - 1]!
+  const lastContent = escapeHtml(lastMsg.content)
+  const lastIsLong = lastMsg.content.length > 800
+  const lastIndex = startIndex + messages.length - 1
+
+  const middleMessages = messages.slice(1, -1)
+  const middleHtml = middleMessages
+    .map((msg, idx) => {
+      const content = escapeHtml(msg.content)
+      const isLong = msg.content.length > 800
+      const msgIndex = startIndex + 1 + idx
+
+      return `
+      <article class="msg assistant hidden-msg" id="msg-${msgIndex}">
+        <div class="msg-indicator" title="${typeLabel}">
+          <span class="msg-abbr">${typeAbbr}</span>
+        </div>
+        <div class="msg-main">
+          <div class="msg-meta">
+            ${
+              isLong
+                ? `<button class="expand-btn" onclick="toggleMsg(${msgIndex})" data-expanded="false">
+              <span class="expand-icon">▼</span>
+            </button>`
+                : ""
+            }
+          </div>
+          <div class="msg-text ${isLong ? "is-collapsed" : ""}">
+            <pre>${content}</pre>
+          </div>
+        </div>
+      </article>
+    `
+    })
+    .join("\n")
+
+  return `
+    <article class="msg assistant" id="msg-${firstIndex}">
+      <div class="msg-indicator" title="${typeLabel}">
+        <span class="msg-abbr">${typeAbbr}</span>
+      </div>
+      <div class="msg-main">
+        <div class="msg-meta">
+          ${
+            firstIsLong
+              ? `<button class="expand-btn" onclick="toggleMsg(${firstIndex})" data-expanded="false">
+            <span class="expand-icon">▼</span>
+          </button>`
+              : ""
+          }
+        </div>
+        <div class="msg-text ${firstIsLong ? "is-collapsed" : ""}">
+          <pre>${firstContent}</pre>
+        </div>
+      </div>
+    </article>
+
+    <div class="hidden-messages-group" id="${groupId}">
+      <button class="show-hidden-btn" onclick="toggleHiddenGroup('${groupId}')" data-expanded="false">
+        <span class="hidden-icon">▶</span>
+        <span class="hidden-count">${hiddenCount}件のメッセージを表示</span>
+      </button>
+      <div class="hidden-messages-container">
+        ${middleHtml}
+      </div>
+    </div>
+
+    <article class="msg assistant" id="msg-${lastIndex}">
+      <div class="msg-indicator" title="${typeLabel}">
+        <span class="msg-abbr">${typeAbbr}</span>
+      </div>
+      <div class="msg-main">
+        <div class="msg-meta">
+          ${
+            lastIsLong
+              ? `<button class="expand-btn" onclick="toggleMsg(${lastIndex})" data-expanded="false">
+            <span class="expand-icon">▼</span>
+          </button>`
+              : ""
+          }
+        </div>
+        <div class="msg-text ${lastIsLong ? "is-collapsed" : ""}">
+          <pre>${lastContent}</pre>
+        </div>
+      </div>
+    </article>
+  `
+}
+
+function filterBranchMessages(messages: BranchMessage[], options: ExportOptions): BranchMessage[] {
+  return messages.filter((msg) => {
+    // Filter system messages first
+    if (msg.isSystemMessage && !options.includeSystemMessages) return false
+    if (msg.type === "user" && !options.includeUser) return false
+    if (msg.type === "assistant" && !options.includeAssistant) return false
+    if ((msg.type === "tool_use" || msg.type === "tool_result") && !options.includeToolUse)
+      return false
+    if (msg.type === "thinking" && !options.includeThinking) return false
+    return true
+  })
+}
+
+function getBranchHtmlStyles(): string {
+  return `
+    :root {
+      --peko-blue: #00BFFF;
+      --peko-blue-light: #E6F9FF;
+      --peko-blue-soft: rgba(0, 191, 255, 0.15);
+      --carrot-orange: #FFA500;
+      --carrot-orange-light: #FFF5E6;
+      --usa-white: #FFFFFF;
+      --peko-pink: #FFC0CB;
+      --peko-pink-deep: #FF8FA3;
+      --peko-pink-light: #FFF0F3;
+      --leaf-green: #228B22;
+      --leaf-green-light: #E8F5E8;
+      --bg-base: #FAFCFD;
+      --bg-surface: var(--usa-white);
+      --text-primary: #2D3748;
+      --text-secondary: #5A6A7A;
+      --text-muted: #8899AA;
+      --border-light: rgba(0, 191, 255, 0.2);
+      --user-accent: var(--leaf-green);
+      --user-bg: var(--leaf-green-light);
+      --assistant-accent: var(--peko-blue);
+      --assistant-bg: var(--peko-blue-light);
+      --tool-accent: var(--carrot-orange);
+      --tool-bg: var(--carrot-orange-light);
+      --result-accent: var(--peko-pink-deep);
+      --result-bg: var(--peko-pink-light);
+      --thinking-accent: #94A3B8;
+      --thinking-bg: #F1F5F9;
+      --font-sans: 'Nunito', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+      --space-xs: 4px;
+      --space-sm: 8px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 40px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 25%, rgba(0, 191, 255, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 85% 75%, rgba(255, 192, 203, 0.05) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: var(--space-xl) var(--space-lg);
+    }
+    .hdr {
+      margin-bottom: var(--space-lg);
+      padding-bottom: var(--space-lg);
+      border-bottom: 2px solid var(--border-light);
+    }
+    .hdr-top {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-sm);
+    }
+    .hdr-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 6px 12px;
+      background: linear-gradient(135deg, var(--leaf-green) 0%, #1a6b1a 100%);
+      color: white;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(34, 139, 34, 0.25);
+    }
+    .hdr-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .meta-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm) var(--space-lg);
+    }
+    .meta-item {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-sm);
+    }
+    .meta-key {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--peko-blue);
+    }
+    .meta-val {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-primary);
+    }
+    .msg-section { position: relative; }
+    .session-boundary {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin: var(--space-lg) 0;
+      padding: var(--space-sm) 0;
+    }
+    .boundary-line {
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--leaf-green), transparent);
+    }
+    .boundary-label {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--leaf-green);
+      padding: 4px 12px;
+      background: var(--leaf-green-light);
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .msg {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: var(--space-sm);
+      margin-bottom: 3px;
+      position: relative;
+    }
+    .msg + .msg { padding-top: 3px; }
+    .msg-indicator {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 6px;
+    }
+    .msg-abbr {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 6px;
+      border-radius: var(--radius-sm);
+      line-height: 1;
+    }
+    .msg-main { min-width: 0; }
+    .msg-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      min-height: 22px;
+      margin-bottom: 2px;
+    }
+    .tool-tag {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 2px 8px;
+      background: rgba(255, 165, 0, 0.15);
+      border-radius: var(--radius-sm);
+      color: var(--carrot-orange);
+    }
+    .expand-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      margin-left: auto;
+      background: var(--peko-blue-light);
+      border: 1px solid var(--peko-blue);
+      border-radius: var(--radius-sm);
+      color: var(--peko-blue);
+      font-size: 0.65rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .expand-btn:hover {
+      background: var(--peko-blue);
+      color: white;
+      transform: scale(1.05);
+    }
+    .expand-btn[data-expanded="true"] .expand-icon { transform: rotate(180deg); }
+    .expand-icon { transition: transform 0.2s ease; }
+    .msg-text {
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-md);
+      transition: max-height 0.3s ease;
+      border-left: 3px solid transparent;
+    }
+    .msg-text.is-collapsed {
+      max-height: 140px;
+      overflow: hidden;
+      position: relative;
+    }
+    .msg-text.is-collapsed::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background: linear-gradient(to bottom, transparent, var(--bg-base));
+      pointer-events: none;
+    }
+    .msg-text pre {
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .user .msg-abbr { background: var(--user-bg); color: var(--user-accent); }
+    .user .msg-text { background: var(--user-bg); border-left-color: var(--user-accent); }
+    .user .msg-text.is-collapsed::after { background: linear-gradient(to bottom, transparent, var(--user-bg)); }
+    .assistant .msg-abbr { background: var(--assistant-bg); color: var(--assistant-accent); }
+    .assistant .msg-text { background: var(--assistant-bg); border-left-color: var(--assistant-accent); }
+    .assistant .msg-text.is-collapsed::after { background: linear-gradient(to bottom, transparent, var(--assistant-bg)); }
+    .tool-use .msg-abbr { background: var(--tool-bg); color: var(--tool-accent); }
+    .tool-use .msg-text { background: var(--tool-bg); border-left-color: var(--tool-accent); }
+    .tool-use .msg-text.is-collapsed::after { background: linear-gradient(to bottom, transparent, var(--tool-bg)); }
+    .tool-result .msg-abbr { background: var(--result-bg); color: var(--result-accent); }
+    .tool-result .msg-text { background: var(--result-bg); border-left-color: var(--result-accent); }
+    .tool-result .msg-text.is-collapsed::after { background: linear-gradient(to bottom, transparent, var(--result-bg)); }
+    .thinking .msg-abbr { background: var(--thinking-bg); color: var(--thinking-accent); }
+    .thinking .msg-text { background: var(--thinking-bg); border-left-color: var(--thinking-accent); }
+    .thinking .msg-text pre { color: var(--text-muted); font-style: italic; }
+    .thinking .msg-text.is-collapsed::after { background: linear-gradient(to bottom, transparent, var(--thinking-bg)); }
+    .hidden-messages-group { margin: var(--space-sm) 0; margin-left: 40px; }
+    .show-hidden-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--peko-blue-soft);
+      border: 1px dashed var(--peko-blue);
+      border-radius: var(--radius-md);
+      color: var(--peko-blue);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .show-hidden-btn:hover {
+      background: var(--peko-blue);
+      color: white;
+      border-style: solid;
+    }
+    .hidden-icon { font-size: 0.7rem; transition: transform 0.2s ease; }
+    .show-hidden-btn[data-expanded="true"] .hidden-icon { transform: rotate(90deg); }
+    .hidden-messages-container {
+      display: none;
+      margin-top: var(--space-sm);
+      padding-left: 0;
+      border-left: 2px dashed var(--peko-blue-soft);
+    }
+    .hidden-messages-container.is-visible { display: block; }
+    .hidden-messages-container .msg { margin-left: -40px; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--peko-blue-light); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--peko-blue), var(--peko-pink));
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: var(--peko-blue); }
+    .ftr {
+      margin-top: var(--space-xl);
+      padding-top: var(--space-md);
+      border-top: 2px dashed var(--border-light);
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .ftr::before { content: '🐰🥕'; display: block; font-size: 1.2rem; margin-bottom: 6px; }
+    @media (max-width: 640px) {
+      html { font-size: 15px; }
+      .page { padding: var(--space-lg) var(--space-md); }
+      .hdr-title { font-size: 1.3rem; }
+      .meta-list { flex-direction: column; gap: var(--space-xs); }
+      .msg { grid-template-columns: 28px 1fr; }
+    }
+    @media print {
+      .expand-btn { display: none; }
+      .msg-text.is-collapsed { max-height: none; }
+      .msg-text.is-collapsed::after { display: none; }
+      body::before { display: none; }
+    }
+  `
 }

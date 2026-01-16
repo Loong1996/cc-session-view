@@ -191,7 +191,15 @@ function App() {
   }
 
   // Handle export
-  const handleExport = async (format: "html" | "text") => {
+  interface ExportOptions {
+    includeUser: boolean
+    includeAssistant: boolean
+    includeToolUse: boolean
+    includeThinking: boolean
+    includeSystemMessages: boolean
+  }
+
+  const handleExport = async (format: "html" | "text", options: ExportOptions) => {
     if (!selectedSession) return
 
     try {
@@ -202,12 +210,7 @@ function App() {
           agentType: selectedSession.agentType,
           sessionId: selectedSession.id,
           format,
-          options: {
-            includeUser: true,
-            includeAssistant: true,
-            includeToolUse: true,
-            includeThinking: false,
-          },
+          options,
         }),
       })
 

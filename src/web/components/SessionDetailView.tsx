@@ -22,10 +22,18 @@ interface SessionDetail {
   messages: Message[]
 }
 
+interface ExportOptions {
+  includeUser: boolean
+  includeAssistant: boolean
+  includeToolUse: boolean
+  includeThinking: boolean
+  includeSystemMessages: boolean
+}
+
 interface SessionDetailViewProps {
   session: SessionDetail
   loading: boolean
-  onExport: (format: "html" | "text") => void
+  onExport: (format: "html" | "text", options: ExportOptions) => void
   onBranchClick?: (branchName: string) => void
 }
 
@@ -135,11 +143,35 @@ export function SessionDetailView({
               ツール呼び出しを表示
             </span>
           </label>
-          <button type="button" className="action-btn" onClick={() => onExport("html")}>
-            📄 HTMLで保存
+          <button
+            type="button"
+            className="action-btn"
+            onClick={() =>
+              onExport("html", {
+                includeUser: true,
+                includeAssistant: true,
+                includeToolUse: showToolMessages,
+                includeThinking: showThinkingMessages,
+                includeSystemMessages: showSystemMessages,
+              })
+            }
+          >
+            📄 HTML
           </button>
-          <button type="button" className="action-btn" onClick={() => onExport("text")}>
-            📝 テキストで保存
+          <button
+            type="button"
+            className="action-btn"
+            onClick={() =>
+              onExport("text", {
+                includeUser: true,
+                includeAssistant: true,
+                includeToolUse: showToolMessages,
+                includeThinking: showThinkingMessages,
+                includeSystemMessages: showSystemMessages,
+              })
+            }
+          >
+            📝 Text
           </button>
         </div>
       </div>

@@ -1,6 +1,12 @@
 import { listClaudeCodeSessions, loadClaudeCodeSession } from "../lib/claude-code-parser"
 import { listCodexSessions, loadCodexSession } from "../lib/codex-parser"
-import { exportToHtml, exportToText } from "../lib/exporter"
+import {
+  type BranchSession,
+  exportBranchToHtml,
+  exportBranchToText,
+  exportToHtml,
+  exportToText,
+} from "../lib/exporter"
 import { extractProjects, filterSessions } from "../lib/filter"
 import type {
   AgentType,
@@ -184,6 +190,7 @@ export const apiHandlers = {
         includeAssistant: options?.includeAssistant ?? true,
         includeToolUse: options?.includeToolUse ?? false,
         includeThinking: options?.includeThinking ?? false,
+        includeSystemMessages: options?.includeSystemMessages ?? false,
       }
 
       // Export
@@ -254,6 +261,7 @@ export const apiHandlers = {
           timestamp: msg.timestamp,
           toolName: msg.toolName,
           toolId: msg.toolId,
+          isSystemMessage: msg.isSystemMessage,
           sessionId: summary.id,
           sessionAgentType: summary.agentType,
           sessionTimestamp: summary.timestamp,
@@ -282,6 +290,115 @@ export const apiHandlers = {
     }
 
     return Response.json(serialized)
+  },
+
+  /** POST /api/export/branch */
+  async exportBranch(req: Request): Promise<Response> {
+    try {
+      const body = await req.json()
+      const { branchName, agentType, format, options } = body as {
+        branchName: string
+        agentType?: AgentType
+        format: "html" | "text"
+        options?: Partial<ExportOptions>
+      }
+
+      if (!branchName || !format) {
+        return Response.json({ error: "Missing required fields" }, { status: 400 })
+      }
+
+      const allSessions = await getAllSessions()
+
+      // Filter sessions by branch name and optionally by agent type
+      const matchingSessions: SessionSummary[] = []
+      if (!agentType || agentType === "claude-code") {
+        matchingSessions.push(...allSessions.claudeCode.filter((s) => s.gitBranch === branchName))
+      }
+      if (!agentType || agentType === "codex") {
+        matchingSessions.push(...allSessions.codex.filter((s) => s.gitBranch === branchName))
+      }
+
+      if (matchingSessions.length === 0) {
+        return Response.json({ error: "No sessions found for this branch" }, { status: 404 })
+      }
+
+      // Sort by timestamp (oldest first for export)
+      matchingSessions.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+
+      // Load session details in parallel
+      const sessionDetails = await Promise.all(
+        matchingSessions.map(async (s) => {
+          const detail =
+            s.agentType === "claude-code"
+              ? await loadClaudeCodeSession(s.filePath)
+              : await loadCodexSession(s.filePath)
+          return { summary: s, detail }
+        }),
+      )
+
+      // Build branch sessions and messages
+      const branchSessions: BranchSession[] = []
+      const branchMessages: BranchMessage[] = []
+
+      for (const { summary, detail } of sessionDetails) {
+        if (!detail) continue
+
+        branchSessions.push({
+          id: summary.id,
+          agentType: summary.agentType,
+          timestamp: summary.timestamp,
+          cwd: summary.cwd,
+        })
+
+        detail.messages.forEach((msg, i) => {
+          branchMessages.push({
+            type: msg.type,
+            content: msg.content,
+            timestamp: msg.timestamp,
+            toolName: msg.toolName,
+            toolId: msg.toolId,
+            isSystemMessage: msg.isSystemMessage,
+            sessionId: summary.id,
+            sessionAgentType: summary.agentType,
+            sessionTimestamp: summary.timestamp,
+            sessionIndex: i,
+          })
+        })
+      }
+
+      // Sort messages
+      const sortedMessages = sortBranchMessages(branchMessages)
+
+      // Merge export options
+      const exportOptions: ExportOptions = {
+        includeUser: options?.includeUser ?? true,
+        includeAssistant: options?.includeAssistant ?? true,
+        includeToolUse: options?.includeToolUse ?? false,
+        includeThinking: options?.includeThinking ?? false,
+        includeSystemMessages: options?.includeSystemMessages ?? false,
+      }
+
+      // Export
+      const content =
+        format === "html"
+          ? exportBranchToHtml(branchName, branchSessions, sortedMessages, exportOptions)
+          : exportBranchToText(branchName, branchSessions, sortedMessages, exportOptions)
+
+      // Sanitize branch name for filename
+      const safeBranchName = branchName.replace(/[/\\?%*:|"<>]/g, "-")
+      const contentType = format === "html" ? "text/html" : "text/plain"
+      const filename = `branch-${safeBranchName}.${format === "html" ? "html" : "txt"}`
+
+      return new Response(content, {
+        headers: {
+          "Content-Type": `${contentType}; charset=utf-8`,
+          "Content-Disposition": `attachment; filename="${filename}"`,
+        },
+      })
+    } catch (error) {
+      console.error("Branch export error:", error)
+      return Response.json({ error: "Branch export failed" }, { status: 500 })
+    }
   },
 }
 

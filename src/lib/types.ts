@@ -61,6 +61,7 @@ export interface ExportOptions {
   includeAssistant: boolean
   includeToolUse: boolean
   includeThinking: boolean
+  includeSystemMessages: boolean
 }
 
 export const defaultExportOptions: ExportOptions = {
@@ -68,6 +69,7 @@ export const defaultExportOptions: ExportOptions = {
   includeAssistant: true,
   includeToolUse: false,
   includeThinking: false,
+  includeSystemMessages: false,
 }
 
 /** ブランチ統合表示用のメッセージ */

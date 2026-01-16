@@ -38,6 +38,50 @@ export function BranchDetailView({ branchName, data, loading, onBack }: BranchDe
   const [showToolMessages, setShowToolMessages] = useState(false)
   const [showSystemMessages, setShowSystemMessages] = useState(false)
   const [showThinkingMessages, setShowThinkingMessages] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  const handleBranchExport = async (format: "html" | "text") => {
+    setExporting(true)
+    try {
+      const res = await fetch("/api/export/branch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          branchName,
+          format,
+          options: {
+            includeUser: true,
+            includeAssistant: true,
+            includeToolUse: showToolMessages,
+            includeThinking: showThinkingMessages,
+            includeSystemMessages: showSystemMessages,
+          },
+        }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || "Export failed")
+      }
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `branch-${branchName.replace(/[/\\?%*:|"<>]/g, "-")}.${format === "html" ? "html" : "txt"}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("Export error:", error)
+      alert(
+        `エクスポートに失敗しました: ${error instanceof Error ? error.message : "Unknown error"}`,
+      )
+    } finally {
+      setExporting(false)
+    }
+  }
 
   if (loading) {
     return <div className="loading">読み込み中...</div>
@@ -110,6 +154,29 @@ export function BranchDetailView({ branchName, data, loading, onBack }: BranchDe
               ツール呼び出しを表示
             </span>
           </label>
+          <div
+            className="export-buttons"
+            style={{ display: "flex", gap: "8px", marginLeft: "16px" }}
+          >
+            <button
+              type="button"
+              className="action-btn"
+              onClick={() => handleBranchExport("html")}
+              disabled={exporting}
+              title="HTMLで保存"
+            >
+              📄 HTML
+            </button>
+            <button
+              type="button"
+              className="action-btn"
+              onClick={() => handleBranchExport("text")}
+              disabled={exporting}
+              title="テキストで保存"
+            >
+              📝 Text
+            </button>
+          </div>
         </div>
       </div>
       <div className="messages-container">

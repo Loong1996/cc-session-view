@@ -9,3 +9,8 @@ pre-commit:
       glob: "*.{js,ts,jsx,tsx,json}"
       run: bunx biome format --staged --no-errors-on-unmatched --write --colors=off
       stage_fixed: true
+
+pre-push:
+  commands:
+    test-all:
+      run: bun test --bail=1

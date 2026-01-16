@@ -22,13 +22,13 @@ export function SessionListView({
   loading,
 }: SessionListViewProps) {
   if (loading) {
-    return <div className="loading">読み込み中...</div>
+    return <div className="loading">Loading...</div>
   }
 
   if (sessions.length === 0) {
     return (
       <div className="empty-state">
-        <p>セッションが見つかりません</p>
+        <p>No sessions found</p>
       </div>
     )
   }
@@ -60,7 +60,7 @@ export function SessionListView({
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString)
-  return date.toLocaleDateString("ja-JP", {
+  return date.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     hour: "2-digit",

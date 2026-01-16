@@ -11,6 +11,105 @@ import { TabBar } from "./components/TabBar"
 type AgentType = "claude-code" | "codex"
 type DateFilter = "today" | "yesterday" | "this-week" | "last-week" | "this-month" | "all"
 
+const DATE_FILTERS: DateFilter[] = [
+  "today",
+  "yesterday",
+  "this-week",
+  "last-week",
+  "this-month",
+  "all",
+]
+
+interface UrlState {
+  agentType: AgentType
+  sessionId: string | null
+  searchQuery: string
+  dateFilter: DateFilter
+  projectFilter: string | null
+  valid: boolean
+}
+
+// URL解析関数
+function parseUrl(pathname: string, search: string): UrlState {
+  const parts = pathname.split("/").filter(Boolean)
+  const params = new URLSearchParams(search)
+
+  // Parse query parameters
+  const searchQuery = params.get("q") || ""
+  const dateParam = params.get("date")
+  const dateFilter: DateFilter =
+    dateParam && DATE_FILTERS.includes(dateParam as DateFilter) ? (dateParam as DateFilter) : "all"
+  const projectFilter = params.get("project") || null
+
+  if (parts[0] === "codex") {
+    const sessionId = parts[1] ? decodeURIComponent(parts[1]) : null
+    return { agentType: "codex", sessionId, searchQuery, dateFilter, projectFilter, valid: true }
+  }
+  if (parts[0] === "claude" || parts.length === 0) {
+    const sessionId = parts[1] ? decodeURIComponent(parts[1]) : null
+    return {
+      agentType: "claude-code",
+      sessionId,
+      searchQuery,
+      dateFilter,
+      projectFilter,
+      valid: true,
+    }
+  }
+  return {
+    agentType: "claude-code",
+    sessionId: null,
+    searchQuery,
+    dateFilter,
+    projectFilter,
+    valid: false,
+  }
+}
+
+// Build URL with query parameters
+function buildUrl(
+  agentType: AgentType,
+  sessionId: string | null,
+  searchQuery: string,
+  dateFilter: DateFilter,
+  projectFilter: string | null,
+): string {
+  const base = agentType === "codex" ? "/codex" : "/claude"
+  const path = sessionId ? `${base}/${encodeURIComponent(sessionId)}` : base
+
+  const params = new URLSearchParams()
+  if (searchQuery) params.set("q", searchQuery)
+  if (dateFilter !== "all") params.set("date", dateFilter)
+  if (projectFilter) params.set("project", projectFilter)
+
+  const queryString = params.toString()
+  return queryString ? `${path}?${queryString}` : path
+}
+
+// URL更新関数（履歴に追加）
+function navigateTo(
+  agentType: AgentType,
+  sessionId: string | null,
+  searchQuery = "",
+  dateFilter: DateFilter = "all",
+  projectFilter: string | null = null,
+) {
+  const url = buildUrl(agentType, sessionId, searchQuery, dateFilter, projectFilter)
+  history.pushState({ agentType, sessionId, searchQuery, dateFilter, projectFilter }, "", url)
+}
+
+// URL同期関数（履歴に追加しない）
+function syncUrl(
+  agentType: AgentType,
+  sessionId: string | null,
+  searchQuery = "",
+  dateFilter: DateFilter = "all",
+  projectFilter: string | null = null,
+) {
+  const url = buildUrl(agentType, sessionId, searchQuery, dateFilter, projectFilter)
+  history.replaceState({ agentType, sessionId, searchQuery, dateFilter, projectFilter }, "", url)
+}
+
 interface SessionSummary {
   id: string
   agentType: string
@@ -141,6 +240,57 @@ function App() {
     }
   }, [])
 
+  // URL-based initialization and popstate handling
+  useEffect(() => {
+    const urlState = parseUrl(window.location.pathname, window.location.search)
+
+    // Redirect invalid paths
+    if (!urlState.valid) {
+      syncUrl(
+        "claude-code",
+        null,
+        urlState.searchQuery,
+        urlState.dateFilter,
+        urlState.projectFilter,
+      )
+    }
+
+    setActiveTab(urlState.agentType)
+    setSearchQuery(urlState.searchQuery)
+    setDateFilter(urlState.dateFilter)
+    setProjectFilter(urlState.projectFilter)
+
+    if (urlState.sessionId) {
+      const session = { id: urlState.sessionId, agentType: urlState.agentType } as SessionSummary
+      setSelectedSession(session)
+      fetchSessionDetail(session)
+    }
+
+    const handlePopState = () => {
+      const newState = parseUrl(window.location.pathname, window.location.search)
+      setActiveTab(newState.agentType)
+      setSearchQuery(newState.searchQuery)
+      setDateFilter(newState.dateFilter)
+      setProjectFilter(newState.projectFilter)
+
+      if (newState.sessionId) {
+        const session = { id: newState.sessionId, agentType: newState.agentType } as SessionSummary
+        setSelectedSession(session)
+        fetchSessionDetail(session)
+      } else {
+        setSelectedSession(null)
+        setSessionDetail(null)
+      }
+      // Reset branch view on navigation
+      setViewMode("session")
+      setBranchData(null)
+      setCurrentBranchName("")
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [fetchSessionDetail])
+
   // Effects
   useEffect(() => {
     fetchSessions()
@@ -155,6 +305,8 @@ function App() {
     setViewMode("session")
     setBranchData(null)
     setCurrentBranchName("")
+    // Update URL (preserve current filters)
+    navigateTo(session.agentType as AgentType, session.id, searchQuery, dateFilter, projectFilter)
   }
 
   // Handle tab change
@@ -163,6 +315,24 @@ function App() {
     setSelectedSession(null)
     setSessionDetail(null)
     setProjectFilter(null)
+    // Update URL (reset project filter, keep search and date)
+    navigateTo(tab, null, searchQuery, dateFilter, null)
+  }
+
+  // Filter change handlers with URL sync
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value)
+    syncUrl(activeTab, selectedSession?.id ?? null, value, dateFilter, projectFilter)
+  }
+
+  const handleDateFilterChange = (value: DateFilter) => {
+    setDateFilter(value)
+    syncUrl(activeTab, selectedSession?.id ?? null, searchQuery, value, projectFilter)
+  }
+
+  const handleProjectFilterChange = (value: string | null) => {
+    setProjectFilter(value)
+    syncUrl(activeTab, selectedSession?.id ?? null, searchQuery, dateFilter, value)
   }
 
   // Handle branch click
@@ -244,12 +414,12 @@ function App() {
         <aside className="sidebar">
           <SearchFilterBar
             searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            onSearchChange={handleSearchChange}
             dateFilter={dateFilter}
-            onDateFilterChange={setDateFilter}
+            onDateFilterChange={handleDateFilterChange}
             projects={projects}
             projectFilter={projectFilter}
-            onProjectFilterChange={setProjectFilter}
+            onProjectFilterChange={handleProjectFilterChange}
           />
           <SessionListView
             sessions={sessions}
@@ -276,8 +446,8 @@ function App() {
             />
           ) : (
             <div className="placeholder">
-              <h2>セッションを選択してください</h2>
-              <p>左のリストからセッションを選択すると、詳細が表示されます</p>
+              <h2>Select a session</h2>
+              <p>Choose a session from the list on the left to view details</p>
             </div>
           )}
         </section>

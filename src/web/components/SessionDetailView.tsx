@@ -48,7 +48,7 @@ export function SessionDetailView({
   const [showThinkingMessages, setShowThinkingMessages] = useState(false)
 
   if (loading) {
-    return <div className="loading">読み込み中...</div>
+    return <div className="loading">Loading...</div>
   }
 
   const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI"
@@ -92,7 +92,7 @@ export function SessionDetailView({
                   type="button"
                   className="branch-link"
                   onClick={() => onBranchClick(session.gitBranch!)}
-                  title="このブランチの全セッションを表示"
+                  title="View all sessions for this branch"
                 >
                   {session.gitBranch}
                 </button>
@@ -115,34 +115,32 @@ export function SessionDetailView({
           )}
         </div>
         <div className="detail-actions">
-          <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={showSystemMessages}
-              onChange={(e) => setShowSystemMessages((e.target as HTMLInputElement).checked)}
-            />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>
-              システムメッセージを表示
-            </span>
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={showThinkingMessages}
-              onChange={(e) => setShowThinkingMessages((e.target as HTMLInputElement).checked)}
-            />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>推論を表示</span>
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={showToolMessages}
-              onChange={(e) => setShowToolMessages((e.target as HTMLInputElement).checked)}
-            />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>
-              ツール呼び出しを表示
-            </span>
-          </label>
+          <div className="toggle-chips">
+            <button
+              type="button"
+              className={`toggle-chip ${showSystemMessages ? "active" : ""}`}
+              onClick={() => setShowSystemMessages(!showSystemMessages)}
+            >
+              <span className="chip-icon">⚙</span>
+              <span>System</span>
+            </button>
+            <button
+              type="button"
+              className={`toggle-chip ${showThinkingMessages ? "active" : ""}`}
+              onClick={() => setShowThinkingMessages(!showThinkingMessages)}
+            >
+              <span className="chip-icon">💭</span>
+              <span>Thinking</span>
+            </button>
+            <button
+              type="button"
+              className={`toggle-chip ${showToolMessages ? "active" : ""}`}
+              onClick={() => setShowToolMessages(!showToolMessages)}
+            >
+              <span className="chip-icon">🔧</span>
+              <span>Tools</span>
+            </button>
+          </div>
           <button
             type="button"
             className="action-btn"
@@ -185,7 +183,7 @@ export function SessionDetailView({
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString)
-  return date.toLocaleString("ja-JP")
+  return date.toLocaleString()
 }
 
 function shortenPath(path: string): string {

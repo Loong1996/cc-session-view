@@ -75,24 +75,22 @@ export function BranchDetailView({ branchName, data, loading, onBack }: BranchDe
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error("Export error:", error)
-      alert(
-        `エクスポートに失敗しました: ${error instanceof Error ? error.message : "Unknown error"}`,
-      )
+      alert(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setExporting(false)
     }
   }
 
   if (loading) {
-    return <div className="loading">読み込み中...</div>
+    return <div className="loading">Loading...</div>
   }
 
   if (!data) {
     return (
       <div className="placeholder">
-        <h2>ブランチデータの読み込みに失敗しました</h2>
+        <h2>Failed to load branch data</h2>
         <button type="button" className="back-button" onClick={onBack}>
-          ← 戻る
+          ← Back
         </button>
       </div>
     )
@@ -115,9 +113,9 @@ export function BranchDetailView({ branchName, data, loading, onBack }: BranchDe
   return (
     <>
       <div className="branch-header">
-        <div className="branch-header-left">
+        <div className="branch-header-row">
           <button type="button" className="back-button" onClick={onBack}>
-            ← 戻る
+            ← Back
           </button>
           <div className="branch-title">
             <span className="branch-icon">🌿</span>
@@ -125,45 +123,40 @@ export function BranchDetailView({ branchName, data, loading, onBack }: BranchDe
           </div>
           <span className="session-count-badge">{data.sessions.length} sessions</span>
         </div>
-        <div className="branch-header-right">
-          <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={showSystemMessages}
-              onChange={(e) => setShowSystemMessages((e.target as HTMLInputElement).checked)}
-            />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>
-              システムメッセージを表示
-            </span>
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={showThinkingMessages}
-              onChange={(e) => setShowThinkingMessages((e.target as HTMLInputElement).checked)}
-            />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>推論を表示</span>
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={showToolMessages}
-              onChange={(e) => setShowToolMessages((e.target as HTMLInputElement).checked)}
-            />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>
-              ツール呼び出しを表示
-            </span>
-          </label>
-          <div
-            className="export-buttons"
-            style={{ display: "flex", gap: "8px", marginLeft: "16px" }}
-          >
+        <div className="branch-header-row">
+          <div className="toggle-chips">
+            <button
+              type="button"
+              className={`toggle-chip ${showSystemMessages ? "active" : ""}`}
+              onClick={() => setShowSystemMessages(!showSystemMessages)}
+            >
+              <span className="chip-icon">⚙</span>
+              <span>System</span>
+            </button>
+            <button
+              type="button"
+              className={`toggle-chip ${showThinkingMessages ? "active" : ""}`}
+              onClick={() => setShowThinkingMessages(!showThinkingMessages)}
+            >
+              <span className="chip-icon">💭</span>
+              <span>Thinking</span>
+            </button>
+            <button
+              type="button"
+              className={`toggle-chip ${showToolMessages ? "active" : ""}`}
+              onClick={() => setShowToolMessages(!showToolMessages)}
+            >
+              <span className="chip-icon">🔧</span>
+              <span>Tools</span>
+            </button>
+          </div>
+          <div className="export-buttons">
             <button
               type="button"
               className="action-btn"
               onClick={() => handleBranchExport("html")}
               disabled={exporting}
-              title="HTMLで保存"
+              title="Save as HTML"
             >
               📄 HTML
             </button>
@@ -172,7 +165,7 @@ export function BranchDetailView({ branchName, data, loading, onBack }: BranchDe
               className="action-btn"
               onClick={() => handleBranchExport("text")}
               disabled={exporting}
-              title="テキストで保存"
+              title="Save as text"
             >
               📝 Text
             </button>
@@ -189,7 +182,7 @@ export function BranchDetailView({ branchName, data, loading, onBack }: BranchDe
 
 function renderMessagesWithBoundaries(messages: BranchMessage[], sessions: BranchSession[]) {
   if (messages.length === 0) {
-    return <div className="empty-state">メッセージがありません</div>
+    return <div className="empty-state">No messages</div>
   }
 
   const sessionMap = new Map(sessions.map((s) => [s.id, s]))
@@ -252,7 +245,7 @@ function renderMessagesWithBoundaries(messages: BranchMessage[], sessions: Branc
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString)
-  return date.toLocaleString("ja-JP", {
+  return date.toLocaleString(undefined, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

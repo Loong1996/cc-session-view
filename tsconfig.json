@@ -2,6 +2,7 @@
   "compilerOptions": {
     // Environment setup & latest features
     "lib": ["ESNext", "DOM"],
+    "types": ["bun-types", "@testing-library/jest-dom"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",

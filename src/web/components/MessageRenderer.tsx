@@ -96,9 +96,7 @@ function ConsecutiveAssistantGroup({
         >
           <span className="hidden-icon">▶</span>
           <span className="hidden-count">
-            {showHidden
-              ? `${hiddenCount}件のメッセージを非表示`
-              : `${hiddenCount}件のメッセージを表示`}
+            {showHidden ? `Hide ${hiddenCount} messages` : `Show ${hiddenCount} messages`}
           </span>
         </button>
         <div className={`hidden-messages-container ${showHidden ? "visible" : ""}`}>

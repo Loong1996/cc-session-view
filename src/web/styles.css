@@ -796,23 +796,25 @@ body::before {
 /* === BRANCH DETAIL VIEW === */
 .branch-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
   border-bottom: 2px solid var(--border-light);
-  gap: var(--space-md);
 }
 
-.branch-header-left {
+.branch-header-row {
   display: flex;
   align-items: center;
   gap: var(--space-md);
 }
 
-.branch-header-right {
+.branch-header-row:last-child {
+  justify-content: space-between;
+}
+
+.export-buttons {
   display: flex;
-  align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
 }
 
 .branch-title {
@@ -858,6 +860,44 @@ body::before {
   background: var(--peko-blue-soft);
   border-color: var(--peko-blue);
   color: var(--peko-blue);
+}
+
+/* === TOGGLE CHIPS === */
+.toggle-chips {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1.5px solid var(--border-light);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.toggle-chip:hover {
+  border-color: var(--peko-blue);
+  color: var(--peko-blue);
+}
+
+.toggle-chip.active {
+  background: var(--peko-blue);
+  border-color: var(--peko-blue);
+  color: white;
+}
+
+.toggle-chip .chip-icon {
+  font-size: 0.8rem;
 }
 
 /* === SESSION BOUNDARY === */

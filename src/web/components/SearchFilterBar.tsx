@@ -29,7 +29,7 @@ export function SearchFilterBar({
       <input
         type="text"
         className="search-input"
-        placeholder="セッションを検索..."
+        placeholder="Search sessions..."
         value={searchQuery}
         onChange={(e) => onSearchChange((e.target as HTMLInputElement).value)}
       />
@@ -39,19 +39,19 @@ export function SearchFilterBar({
           value={dateFilter}
           onChange={(e) => onDateFilterChange((e.target as HTMLSelectElement).value as DateFilter)}
         >
-          <option value="all">すべての期間</option>
-          <option value="today">今日</option>
-          <option value="yesterday">昨日</option>
-          <option value="this-week">今週</option>
-          <option value="last-week">先週</option>
-          <option value="this-month">今月</option>
+          <option value="all">All time</option>
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="this-week">This week</option>
+          <option value="last-week">Last week</option>
+          <option value="this-month">This month</option>
         </select>
         <select
           className="filter-select"
           value={projectFilter || ""}
           onChange={(e) => onProjectFilterChange((e.target as HTMLSelectElement).value || null)}
         >
-          <option value="">すべてのプロジェクト</option>
+          <option value="">All projects</option>
           {projects.map((project) => (
             <option key={project.path} value={project.path}>
               {shortenPath(project.path)} ({project.count})

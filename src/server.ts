@@ -8,6 +8,10 @@ export function startServer() {
     port: PORT,
     routes: {
       "/": index,
+      "/claude": index,
+      "/codex": index,
+      "/claude/*": index,
+      "/codex/*": index,
       "/api/sessions": {
         GET: apiHandlers.getSessions,
       },

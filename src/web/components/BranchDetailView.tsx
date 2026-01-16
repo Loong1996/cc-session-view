@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { MessageRenderer } from "./MessageRenderer"
 
 interface BranchMessage {
@@ -32,13 +32,26 @@ interface BranchDetailViewProps {
   data: BranchSessionsData | null
   loading: boolean
   onBack: () => void
+  currentAgentType: "claude-code" | "codex"
 }
 
-export function BranchDetailView({ branchName, data, loading, onBack }: BranchDetailViewProps) {
+export function BranchDetailView({
+  branchName,
+  data,
+  loading,
+  onBack,
+  currentAgentType,
+}: BranchDetailViewProps) {
   const [showToolMessages, setShowToolMessages] = useState(false)
   const [showSystemMessages, setShowSystemMessages] = useState(false)
   const [showThinkingMessages, setShowThinkingMessages] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [includeOtherAgents, setIncludeOtherAgents] = useState(false)
+
+  // Reset toggle when branch or agent changes
+  useEffect(() => {
+    setIncludeOtherAgents(false)
+  }, [branchName, currentAgentType])
 
   const handleBranchExport = async (format: "html" | "text") => {
     setExporting(true)
@@ -49,6 +62,7 @@ export function BranchDetailView({ branchName, data, loading, onBack }: BranchDe
         body: JSON.stringify({
           branchName,
           format,
+          agentType: includeOtherAgents ? undefined : currentAgentType,
           options: {
             includeUser: true,
             includeAssistant: true,
@@ -98,6 +112,8 @@ export function BranchDetailView({ branchName, data, loading, onBack }: BranchDe
 
   // Filter messages based on toggles
   const filteredMessages = data.messages.filter((m) => {
+    // Filter: exclude other agents' messages when toggle is off
+    if (!includeOtherAgents && m.sessionAgentType !== currentAgentType) return false
     // Filter system messages (hide by default)
     if (m.isSystemMessage && !showSystemMessages) return false
     // Filter tool messages
@@ -168,6 +184,20 @@ export function BranchDetailView({ branchName, data, loading, onBack }: BranchDe
               title="Save as text"
             >
               📝 Text
+            </button>
+          </div>
+        </div>
+        <div className="branch-header-row">
+          <div className="toggle-chips">
+            <button
+              type="button"
+              className={`toggle-chip ${includeOtherAgents ? "active" : ""}`}
+              onClick={() => setIncludeOtherAgents(!includeOtherAgents)}
+              title="Include messages from other agents in the same branch"
+              aria-pressed={includeOtherAgents}
+            >
+              <span className="chip-icon">🔗</span>
+              <span>Include Other Agents</span>
             </button>
           </div>
         </div>

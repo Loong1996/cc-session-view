@@ -336,12 +336,13 @@ function App() {
   }
 
   // Handle branch click
+  // Always fetch all agents' data, filtering is done in BranchDetailView
   const handleBranchClick = async (branchName: string) => {
     setBranchLoading(true)
     setViewMode("branch")
     setCurrentBranchName(branchName)
     try {
-      const params = new URLSearchParams({ name: branchName, agent: activeTab })
+      const params = new URLSearchParams({ name: branchName })
       const res = await fetch(`/api/sessions/branch?${params}`)
       const data = await res.json()
       setBranchData(data)
@@ -436,6 +437,7 @@ function App() {
               data={branchData}
               loading={branchLoading}
               onBack={handleBackFromBranch}
+              currentAgentType={activeTab}
             />
           ) : selectedSession && sessionDetail ? (
             <SessionDetailView

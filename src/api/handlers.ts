@@ -4,6 +4,7 @@ import { exportToHtml, exportToText } from "../lib/exporter"
 import { extractProjects, filterSessions } from "../lib/filter"
 import type {
   AgentType,
+  BranchMessage,
   DateFilter,
   ExportOptions,
   FilterState,
@@ -205,4 +206,102 @@ export const apiHandlers = {
       return Response.json({ error: "Export failed" }, { status: 500 })
     }
   },
+
+  /** GET /api/sessions/branch?name=<branchName>&agent=<agentType> */
+  async getSessionsByBranch(req: Request): Promise<Response> {
+    const url = new URL(req.url)
+    const branchName = url.searchParams.get("name")
+    const agent = url.searchParams.get("agent") as AgentType | null
+
+    if (!branchName) {
+      return Response.json({ error: "Missing branch name" }, { status: 400 })
+    }
+
+    const allSessions = await getAllSessions()
+
+    // Filter sessions by branch name and optionally by agent type
+    const matchingSessions: SessionSummary[] = []
+    if (!agent || agent === "claude-code") {
+      matchingSessions.push(...allSessions.claudeCode.filter((s) => s.gitBranch === branchName))
+    }
+    if (!agent || agent === "codex") {
+      matchingSessions.push(...allSessions.codex.filter((s) => s.gitBranch === branchName))
+    }
+
+    // Sort by timestamp (newest first for sessions list)
+    matchingSessions.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+
+    // Load session details in parallel
+    const sessionDetails = await Promise.all(
+      matchingSessions.map(async (s) => {
+        const detail =
+          s.agentType === "claude-code"
+            ? await loadClaudeCodeSession(s.filePath)
+            : await loadCodexSession(s.filePath)
+        return { summary: s, detail }
+      }),
+    )
+
+    // Build branch messages with session context
+    const branchMessages: BranchMessage[] = []
+    for (const { summary, detail } of sessionDetails) {
+      if (!detail) continue
+
+      detail.messages.forEach((msg, i) => {
+        branchMessages.push({
+          type: msg.type,
+          content: msg.content,
+          timestamp: msg.timestamp,
+          toolName: msg.toolName,
+          toolId: msg.toolId,
+          sessionId: summary.id,
+          sessionAgentType: summary.agentType,
+          sessionTimestamp: summary.timestamp,
+          sessionIndex: i,
+        })
+      })
+    }
+
+    // Sort messages by time with multi-level tiebreaker
+    const sortedMessages = sortBranchMessages(branchMessages)
+
+    // Serialize for JSON
+    const serialized = {
+      branchName,
+      sessions: matchingSessions.map((s) => ({
+        id: s.id,
+        agentType: s.agentType,
+        timestamp: s.timestamp.toISOString(),
+        cwd: s.cwd,
+      })),
+      messages: sortedMessages.map((m) => ({
+        ...m,
+        timestamp: m.timestamp?.toISOString(),
+        sessionTimestamp: m.sessionTimestamp.toISOString(),
+      })),
+    }
+
+    return Response.json(serialized)
+  },
+}
+
+/** Sort branch messages with multi-level tiebreaker for stable ordering */
+function sortBranchMessages(messages: BranchMessage[]): BranchMessage[] {
+  return messages.sort((a, b) => {
+    // 1. effectiveTimestamp（messageにtimestampがあればそれ、なければsessionTimestamp）
+    const aTime = a.timestamp?.getTime() ?? a.sessionTimestamp.getTime()
+    const bTime = b.timestamp?.getTime() ?? b.sessionTimestamp.getTime()
+    if (aTime !== bTime) return aTime - bTime
+
+    // 2. sessionTimestamp（セッション開始時刻）
+    const aSessionTime = a.sessionTimestamp.getTime()
+    const bSessionTime = b.sessionTimestamp.getTime()
+    if (aSessionTime !== bSessionTime) return aSessionTime - bSessionTime
+
+    // 3. sessionId（安定化のためのタイブレーク）
+    if (a.sessionId !== b.sessionId) return a.sessionId.localeCompare(b.sessionId)
+
+    // 4. sessionIndex（セッション内順序）
+    return a.sessionIndex - b.sessionIndex
+  })
 }

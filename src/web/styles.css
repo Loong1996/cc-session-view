@@ -775,3 +775,113 @@ body::before {
     grid-template-columns: 28px 1fr;
   }
 }
+
+/* === BRANCH LINK === */
+.branch-link {
+  background: none;
+  border: none;
+  color: var(--peko-blue);
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: var(--font-mono);
+  font-size: inherit;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.branch-link:hover {
+  color: var(--peko-pink-deep);
+}
+
+/* === BRANCH DETAIL VIEW === */
+.branch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 2px solid var(--border-light);
+  gap: var(--space-md);
+}
+
+.branch-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.branch-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.branch-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.branch-icon {
+  font-size: 1.2rem;
+}
+
+.branch-name {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.session-count-badge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: var(--peko-blue-soft);
+  color: var(--peko-blue);
+  border-radius: 12px;
+}
+
+.back-button {
+  background: none;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background: var(--peko-blue-soft);
+  border-color: var(--peko-blue);
+  color: var(--peko-blue);
+}
+
+/* === SESSION BOUNDARY === */
+.session-boundary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
+  padding: var(--space-sm) 0;
+}
+
+.boundary-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+}
+
+.boundary-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+}

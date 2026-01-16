@@ -7,6 +7,7 @@ interface Message {
   timestamp?: string
   toolName?: string
   toolId?: string
+  isSystemMessage?: boolean
 }
 
 interface SessionDetail {
@@ -25,10 +26,18 @@ interface SessionDetailViewProps {
   session: SessionDetail
   loading: boolean
   onExport: (format: "html" | "text") => void
+  onBranchClick?: (branchName: string) => void
 }
 
-export function SessionDetailView({ session, loading, onExport }: SessionDetailViewProps) {
+export function SessionDetailView({
+  session,
+  loading,
+  onExport,
+  onBranchClick,
+}: SessionDetailViewProps) {
   const [showToolMessages, setShowToolMessages] = useState(false)
+  const [showSystemMessages, setShowSystemMessages] = useState(false)
+  const [showThinkingMessages, setShowThinkingMessages] = useState(false)
 
   if (loading) {
     return <div className="loading">読み込み中...</div>
@@ -36,10 +45,16 @@ export function SessionDetailView({ session, loading, onExport }: SessionDetailV
 
   const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI"
 
-  // Filter messages based on toggle
-  const filteredMessages = showToolMessages
-    ? session.messages
-    : session.messages.filter((m) => m.type === "user" || m.type === "assistant")
+  // Filter messages based on toggles
+  const filteredMessages = session.messages.filter((m) => {
+    // Filter system messages (hide by default)
+    if (m.isSystemMessage && !showSystemMessages) return false
+    // Filter tool messages
+    if (!showToolMessages && (m.type === "tool_use" || m.type === "tool_result")) return false
+    // Filter thinking/reasoning messages
+    if (!showThinkingMessages && m.type === "thinking") return false
+    return true
+  })
 
   return (
     <>
@@ -64,7 +79,18 @@ export function SessionDetailView({ session, loading, onExport }: SessionDetailV
           {session.gitBranch && (
             <div>
               <span className="meta-label">Branch </span>
-              <span className="meta-value">{session.gitBranch}</span>
+              {onBranchClick ? (
+                <button
+                  type="button"
+                  className="branch-link"
+                  onClick={() => onBranchClick(session.gitBranch!)}
+                  title="このブランチの全セッションを表示"
+                >
+                  {session.gitBranch}
+                </button>
+              ) : (
+                <span className="meta-value">{session.gitBranch}</span>
+              )}
             </div>
           )}
           {session.model && (
@@ -81,6 +107,24 @@ export function SessionDetailView({ session, loading, onExport }: SessionDetailV
           )}
         </div>
         <div className="detail-actions">
+          <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={showSystemMessages}
+              onChange={(e) => setShowSystemMessages((e.target as HTMLInputElement).checked)}
+            />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>
+              システムメッセージを表示
+            </span>
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={showThinkingMessages}
+              onChange={(e) => setShowThinkingMessages((e.target as HTMLInputElement).checked)}
+            />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>推論を表示</span>
+          </label>
           <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
             <input
               type="checkbox"

@@ -11,6 +11,9 @@ export function startServer() {
       "/api/sessions": {
         GET: apiHandlers.getSessions,
       },
+      "/api/sessions/branch": {
+        GET: apiHandlers.getSessionsByBranch,
+      },
       "/api/sessions/:agentType/:sessionId": {
         GET: apiHandlers.getSessionDetail,
       },

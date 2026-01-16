@@ -39,6 +39,7 @@ export interface Message {
   timestamp?: Date
   toolName?: string // For tool_use
   toolId?: string // For tool_use/tool_result
+  isSystemMessage?: boolean // System messages (e.g., <system-reminder>, <environment>)
 }
 
 /** Session detail information */
@@ -67,4 +68,25 @@ export const defaultExportOptions: ExportOptions = {
   includeAssistant: true,
   includeToolUse: false,
   includeThinking: false,
+}
+
+/** ブランチ統合表示用のメッセージ */
+export interface BranchMessage extends Message {
+  sessionId: string
+  sessionAgentType: AgentType
+  sessionTimestamp: Date // セッション開始時刻（ソート用フォールバック）
+  sessionIndex: number // セッション内でのメッセージ順序（0始まり）
+  // Note: isSystemMessage is inherited from Message
+}
+
+/** ブランチ別セッション統合レスポンス */
+export interface BranchSessionsData {
+  branchName: string
+  sessions: Array<{
+    id: string
+    agentType: AgentType
+    timestamp: Date
+    cwd?: string
+  }>
+  messages: BranchMessage[]
 }

@@ -167,6 +167,12 @@ export async function loadClaudeCodeSession(filePath: string): Promise<SessionDe
   }
 }
 
+/** Check if content is a system message (for Claude Code) */
+function isSystemMessage(content: string): boolean {
+  const trimmed = content.trim()
+  return trimmed.startsWith("<")
+}
+
 /** Extract message content */
 function extractMessageContent(message: unknown): string | null {
   if (!message || typeof message !== "object") return null
@@ -206,6 +212,7 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
       type: "user",
       content: msg.content,
       timestamp: ts,
+      isSystemMessage: isSystemMessage(msg.content),
     })
     return messages
   }
@@ -218,6 +225,7 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
           type: "user",
           content: block.text,
           timestamp: ts,
+          isSystemMessage: isSystemMessage(block.text),
         })
       } else if (block.type === "tool_result") {
         const content =

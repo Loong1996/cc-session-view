@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
 import "./styles.css"
 
+import { BranchDetailView } from "./components/BranchDetailView"
 import { SearchFilterBar } from "./components/SearchFilterBar"
 import { SessionDetailView } from "./components/SessionDetailView"
 import { SessionListView } from "./components/SessionListView"
@@ -38,11 +39,36 @@ interface Message {
   timestamp?: string
   toolName?: string
   toolId?: string
+  isSystemMessage?: boolean
 }
 
 interface Project {
   path: string
   count: number
+}
+
+interface BranchMessage {
+  type: "user" | "assistant" | "tool_use" | "tool_result" | "thinking"
+  content: string
+  timestamp?: string
+  toolName?: string
+  toolId?: string
+  isSystemMessage?: boolean
+  sessionId: string
+  sessionAgentType: AgentType
+  sessionTimestamp: string
+  sessionIndex: number
+}
+
+interface BranchSessionsData {
+  branchName: string
+  sessions: Array<{
+    id: string
+    agentType: AgentType
+    timestamp: string
+    cwd?: string
+  }>
+  messages: BranchMessage[]
 }
 
 function App() {
@@ -54,6 +80,12 @@ function App() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
+
+  // Branch view state
+  const [viewMode, setViewMode] = useState<"session" | "branch">("session")
+  const [branchData, setBranchData] = useState<BranchSessionsData | null>(null)
+  const [branchLoading, setBranchLoading] = useState(false)
+  const [currentBranchName, setCurrentBranchName] = useState<string>("")
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("")
@@ -119,6 +151,10 @@ function App() {
   const handleSessionSelect = (session: SessionSummary) => {
     setSelectedSession(session)
     fetchSessionDetail(session)
+    // Exit branch view when selecting a session
+    setViewMode("session")
+    setBranchData(null)
+    setCurrentBranchName("")
   }
 
   // Handle tab change
@@ -127,6 +163,31 @@ function App() {
     setSelectedSession(null)
     setSessionDetail(null)
     setProjectFilter(null)
+  }
+
+  // Handle branch click
+  const handleBranchClick = async (branchName: string) => {
+    setBranchLoading(true)
+    setViewMode("branch")
+    setCurrentBranchName(branchName)
+    try {
+      const params = new URLSearchParams({ name: branchName, agent: activeTab })
+      const res = await fetch(`/api/sessions/branch?${params}`)
+      const data = await res.json()
+      setBranchData(data)
+    } catch (error) {
+      console.error("Failed to fetch branch data:", error)
+      setBranchData(null)
+    } finally {
+      setBranchLoading(false)
+    }
+  }
+
+  // Handle back from branch view
+  const handleBackFromBranch = () => {
+    setViewMode("session")
+    setBranchData(null)
+    setCurrentBranchName("")
   }
 
   // Handle export
@@ -196,11 +257,19 @@ function App() {
         </aside>
 
         <section className="content">
-          {selectedSession && sessionDetail ? (
+          {viewMode === "branch" ? (
+            <BranchDetailView
+              branchName={currentBranchName}
+              data={branchData}
+              loading={branchLoading}
+              onBack={handleBackFromBranch}
+            />
+          ) : selectedSession && sessionDetail ? (
             <SessionDetailView
               session={sessionDetail}
               loading={detailLoading}
               onExport={handleExport}
+              onBranchClick={handleBranchClick}
             />
           ) : (
             <div className="placeholder">

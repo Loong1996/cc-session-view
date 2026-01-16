@@ -174,8 +174,8 @@ function getMessageAbbr(type: string): string {
     user: "U",
     assistant: "A",
     tool_use: "T",
-    tool_result: "R",
-    thinking: "?",
+    tool_result: "→",
+    thinking: "R",
   }
   return abbrs[type] || "?"
 }

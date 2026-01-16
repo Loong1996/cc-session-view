@@ -210,7 +210,12 @@ function parseCodexJsonlSessionDetail(filePath: string, text: string): SessionDe
         if (payload.type === "message" && payload.role === "user") {
           const content = extractCodexMessageContent(payload)
           if (content) {
-            messages.push({ type: "user", content, timestamp: ts })
+            messages.push({
+              type: "user",
+              content,
+              timestamp: ts,
+              isSystemMessage: isSystemMessage(content),
+            })
           }
         } else if (payload.type === "message" && payload.role === "assistant") {
           const content = extractCodexMessageContent(payload)
@@ -271,7 +276,7 @@ function parseCodexJsonSessionDetail(filePath: string, text: string): SessionDet
       if (item.type === "message" && item.role === "user") {
         const content = extractCodexMessageContent(item)
         if (content) {
-          messages.push({ type: "user", content })
+          messages.push({ type: "user", content, isSystemMessage: isSystemMessage(content) })
         }
       } else if (item.type === "reasoning") {
         // Treat reasoning as thinking
@@ -341,6 +346,12 @@ function extractCodexMessageContent(message: Record<string, unknown>): string | 
 
 /** Determine if message should not be used for title */
 function shouldSkipForTitle(content: string): boolean {
+  const trimmed = content.trim()
+  return trimmed.startsWith("# AGENTS.md") || trimmed.startsWith("<environment_context>")
+}
+
+/** Check if content is a system message (for Codex) */
+function isSystemMessage(content: string): boolean {
   const trimmed = content.trim()
   return trimmed.startsWith("# AGENTS.md") || trimmed.startsWith("<environment_context>")
 }

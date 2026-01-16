@@ -1,44 +1,38 @@
-import React from "react";
-import { Box, Text } from "ink";
-import type { FilterState, DateFilter } from "../lib/types";
+import { Box, Text } from "ink"
+import type { DateFilter, FilterState } from "../lib/types"
 
 interface FilterBarProps {
-  filter: FilterState;
+  filter: FilterState
 }
 
 function formatDateFilter(filter: DateFilter): string {
   switch (filter) {
     case "today":
-      return "Today";
+      return "Today"
     case "yesterday":
-      return "Yesterday";
+      return "Yesterday"
     case "this-week":
-      return "This Week";
+      return "This Week"
     case "last-week":
-      return "Last Week";
+      return "Last Week"
     case "this-month":
-      return "This Month";
-    case "all":
+      return "This Month"
     default:
-      return "All Time";
+      return "All Time"
   }
 }
 
 export function FilterBar({ filter }: FilterBarProps) {
-  const hasSearch = Boolean(filter.searchQuery.trim());
-  const dateLabel = formatDateFilter(filter.dateFilter);
-  const projectLabel = filter.projectPath ?? "All Projects";
+  const hasSearch = Boolean(filter.searchQuery.trim())
+  const dateLabel = formatDateFilter(filter.dateFilter)
+  const projectLabel = filter.projectPath ?? "All Projects"
 
   return (
     <Box flexDirection="column">
       <Text dimColor>
         Filter: {dateLabel} | Project: {projectLabel}
       </Text>
-      {hasSearch && (
-        <Text dimColor>
-          Query: "{filter.searchQuery}"
-        </Text>
-      )}
+      {hasSearch && <Text dimColor>Query: "{filter.searchQuery}"</Text>}
     </Box>
-  );
+  )
 }

@@ -1,9 +1,8 @@
-import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "ink"
 
 interface FooterProps {
-  hint: string;
-  statusMessage?: string | null;
+  hint: string
+  statusMessage?: string | null
 }
 
 export function Footer({ hint, statusMessage }: FooterProps) {
@@ -18,5 +17,5 @@ export function Footer({ hint, statusMessage }: FooterProps) {
         <Text dimColor>{hint}</Text>
       </Box>
     </Box>
-  );
+  )
 }

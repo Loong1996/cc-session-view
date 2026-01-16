@@ -1,28 +1,43 @@
-import React from "react";
-import { Box, Text } from "ink";
-import type { Message, SessionDetail, SessionSummary } from "../lib/types";
+import { Box, Text } from "ink"
+import type { Message, SessionDetail, SessionSummary } from "../lib/types"
 
 interface SessionPreviewProps {
-  session: SessionDetail | null;
-  summary: SessionSummary | null;
-  loading: boolean;
-  width: number;
+  session: SessionDetail | null
+  summary: SessionSummary | null
+  loading: boolean
+  width: number
 }
 
 export function SessionPreview({ session, summary, loading, width }: SessionPreviewProps) {
   if (!summary) {
     return (
-      <Box flexDirection="column" borderStyle="single" borderColor="gray" width={width} paddingX={1}>
-        <Text bold color="cyan">Preview</Text>
+      <Box
+        flexDirection="column"
+        borderStyle="single"
+        borderColor="gray"
+        width={width}
+        paddingX={1}
+      >
+        <Text bold color="cyan">
+          Preview
+        </Text>
         <Text dimColor>Select a session to preview</Text>
       </Box>
-    );
+    )
   }
 
   if (loading || !session) {
     return (
-      <Box flexDirection="column" borderStyle="single" borderColor="gray" width={width} paddingX={1}>
-        <Text bold color="cyan">Preview</Text>
+      <Box
+        flexDirection="column"
+        borderStyle="single"
+        borderColor="gray"
+        width={width}
+        paddingX={1}
+      >
+        <Text bold color="cyan">
+          Preview
+        </Text>
         <Box marginTop={1} flexDirection="column">
           <Text>
             <Text dimColor>Date: </Text>
@@ -41,18 +56,22 @@ export function SessionPreview({ session, summary, loading, width }: SessionPrev
             </Text>
           )}
         </Box>
-        <Text dimColor marginTop={1}>Loading messages...</Text>
+        <Text dimColor marginTop={1}>
+          Loading messages...
+        </Text>
       </Box>
-    );
+    )
   }
 
   const previewMessages = session.messages
     .filter((message) => message.type === "user" || message.type === "assistant")
-    .slice(0, 5);
+    .slice(0, 5)
 
   return (
     <Box flexDirection="column" borderStyle="single" borderColor="cyan" width={width} paddingX={1}>
-      <Text bold color="cyan">Preview</Text>
+      <Text bold color="cyan">
+        Preview
+      </Text>
       <Box marginTop={1} flexDirection="column">
         <Text>
           <Text dimColor>ID: </Text>
@@ -92,13 +111,13 @@ export function SessionPreview({ session, summary, loading, width }: SessionPrev
         )}
       </Box>
     </Box>
-  );
+  )
 }
 
 function truncatePath(path: string, maxWidth: number): string {
-  if (maxWidth <= 3) return path.slice(0, maxWidth);
-  if (path.length <= maxWidth) return path;
-  return "..." + path.slice(-(maxWidth - 3));
+  if (maxWidth <= 3) return path.slice(0, maxWidth)
+  if (path.length <= maxWidth) return path
+  return `...${path.slice(-(maxWidth - 3))}`
 }
 
 function PreviewMessageItem({ message, maxWidth }: { message: Message; maxWidth: number }) {
@@ -108,23 +127,23 @@ function PreviewMessageItem({ message, maxWidth }: { message: Message; maxWidth:
     tool_use: "yellow",
     tool_result: "magenta",
     thinking: "gray",
-  };
+  }
   const roleLabels: Record<string, string> = {
     user: "USER",
     assistant: "ASST",
     tool_use: "TOOL",
     tool_result: "RSLT",
     thinking: "THNK",
-  };
+  }
 
-  const color = roleColors[message.type] || "white";
-  const label = roleLabels[message.type] || "????";
-  const content = message.content.replace(/\n/g, " ").slice(0, Math.max(0, maxWidth - 10));
+  const color = roleColors[message.type] || "white"
+  const label = roleLabels[message.type] || "????"
+  const content = message.content.replace(/\n/g, " ").slice(0, Math.max(0, maxWidth - 10))
 
   return (
     <Box>
       <Text color={color}>[{label}] </Text>
       <Text wrap="truncate">{content}</Text>
     </Box>
-  );
+  )
 }

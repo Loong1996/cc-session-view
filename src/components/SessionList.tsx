@@ -1,18 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Box, Text, useInput } from "ink";
-import type { SessionSummary } from "../lib/types";
+import { Box, Text, useInput } from "ink"
+import { useEffect, useMemo, useState } from "react"
+import type { SessionSummary } from "../lib/types"
 
 interface SessionListProps {
-  sessions: SessionSummary[];
-  onSelect: (session: SessionSummary) => void;
-  onHighlight?: (session: SessionSummary | null) => void;
-  isActive: boolean;
-  width?: number;
-  highlightIndex?: number;
-  onHighlightIndexChange?: (index: number) => void;
+  sessions: SessionSummary[]
+  onSelect: (session: SessionSummary) => void
+  onHighlight?: (session: SessionSummary | null) => void
+  isActive: boolean
+  width?: number
+  highlightIndex?: number
+  onHighlightIndexChange?: (index: number) => void
 }
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 15
 
 export function SessionList({
   sessions,
@@ -23,116 +23,116 @@ export function SessionList({
   highlightIndex: controlledIndex,
   onHighlightIndexChange,
 }: SessionListProps) {
-  const [internalIndex, setInternalIndex] = useState(0);
-  const [scrollOffset, setScrollOffset] = useState(0);
+  const [internalIndex, setInternalIndex] = useState(0)
+  const [scrollOffset, setScrollOffset] = useState(0)
 
   // Use controlled index if provided, otherwise use internal state
-  const isControlled = controlledIndex !== undefined;
-  const highlightIndex = isControlled ? controlledIndex : internalIndex;
+  const isControlled = controlledIndex !== undefined
+  const highlightIndex = isControlled ? controlledIndex : internalIndex
 
   const setHighlightIndex = (newIndex: number | ((prev: number) => number)) => {
-    const resolvedIndex = typeof newIndex === 'function' ? newIndex(highlightIndex) : newIndex;
+    const resolvedIndex = typeof newIndex === "function" ? newIndex(highlightIndex) : newIndex
     if (isControlled && onHighlightIndexChange) {
-      onHighlightIndexChange(resolvedIndex);
+      onHighlightIndexChange(resolvedIndex)
     } else {
-      setInternalIndex(resolvedIndex);
+      setInternalIndex(resolvedIndex)
     }
-  };
+  }
 
   // Reset only internal state when sessions change (for uncontrolled mode)
   useEffect(() => {
     if (!isControlled) {
-      setInternalIndex(0);
-      setScrollOffset(0);
+      setInternalIndex(0)
+      setScrollOffset(0)
     }
-  }, [sessions, isControlled]);
+  }, [isControlled])
 
   // Adjust highlight index if it's out of bounds
   useEffect(() => {
     if (sessions.length > 0 && highlightIndex >= sessions.length) {
-      setHighlightIndex(sessions.length - 1);
+      setHighlightIndex(sessions.length - 1)
     }
-  }, [sessions.length, highlightIndex]);
+  }, [sessions.length, highlightIndex, setHighlightIndex])
 
   useEffect(() => {
-    if (!onHighlight) return;
-    onHighlight(sessions[highlightIndex] ?? null);
-  }, [highlightIndex, sessions, onHighlight]);
+    if (!onHighlight) return
+    onHighlight(sessions[highlightIndex] ?? null)
+  }, [highlightIndex, sessions, onHighlight])
 
   useEffect(() => {
-    if (sessions.length === 0) return;
+    if (sessions.length === 0) return
     if (highlightIndex < scrollOffset) {
-      setScrollOffset(highlightIndex);
+      setScrollOffset(highlightIndex)
     } else if (highlightIndex >= scrollOffset + PAGE_SIZE) {
-      setScrollOffset(Math.max(0, highlightIndex - PAGE_SIZE + 1));
+      setScrollOffset(Math.max(0, highlightIndex - PAGE_SIZE + 1))
     }
-  }, [highlightIndex, scrollOffset, sessions.length]);
+  }, [highlightIndex, scrollOffset, sessions.length])
 
   useInput((input, key) => {
-    if (!isActive) return;
-    if (sessions.length === 0) return;
+    if (!isActive) return
+    if (sessions.length === 0) return
 
-    const maxIndex = sessions.length - 1;
+    const maxIndex = sessions.length - 1
 
     if (key.upArrow || input === "k") {
-      setHighlightIndex((prev) => Math.max(0, prev - 1));
-      return;
+      setHighlightIndex((prev) => Math.max(0, prev - 1))
+      return
     }
     if (key.downArrow || input === "j") {
-      setHighlightIndex((prev) => Math.min(maxIndex, prev + 1));
-      return;
+      setHighlightIndex((prev) => Math.min(maxIndex, prev + 1))
+      return
     }
     if (key.pageUp || (key.ctrl && input === "u")) {
-      setHighlightIndex((prev) => Math.max(0, prev - PAGE_SIZE));
-      return;
+      setHighlightIndex((prev) => Math.max(0, prev - PAGE_SIZE))
+      return
     }
     if (key.pageDown || (key.ctrl && input === "d")) {
-      setHighlightIndex((prev) => Math.min(maxIndex, prev + PAGE_SIZE));
-      return;
+      setHighlightIndex((prev) => Math.min(maxIndex, prev + PAGE_SIZE))
+      return
     }
     if (key.home || input === "g") {
-      setHighlightIndex(0);
-      return;
+      setHighlightIndex(0)
+      return
     }
     if (key.end || input === "G") {
-      setHighlightIndex(maxIndex);
-      return;
+      setHighlightIndex(maxIndex)
+      return
     }
     if (key.return) {
-      const selected = sessions[highlightIndex];
+      const selected = sessions[highlightIndex]
       if (selected) {
-        onSelect(selected);
+        onSelect(selected)
       }
     }
-  });
+  })
 
   const visibleSessions = useMemo(
     () => sessions.slice(scrollOffset, scrollOffset + PAGE_SIZE),
-    [sessions, scrollOffset]
-  );
+    [sessions, scrollOffset],
+  )
 
   if (sessions.length === 0) {
     return (
       <Box>
         <Text dimColor>No sessions found</Text>
       </Box>
-    );
+    )
   }
 
   return (
     <Box flexDirection="column">
       {visibleSessions.map((session, i) => {
-        const index = scrollOffset + i;
-        const isHighlighted = index === highlightIndex;
-        const label = formatSessionLabel(session);
-        const maxWidth = width ? Math.max(10, width - 4) : undefined;
-        const displayLabel = maxWidth ? truncateLabel(label, maxWidth) : label;
+        const index = scrollOffset + i
+        const isHighlighted = index === highlightIndex
+        const label = formatSessionLabel(session)
+        const maxWidth = width ? Math.max(10, width - 4) : undefined
+        const displayLabel = maxWidth ? truncateLabel(label, maxWidth) : label
 
         return (
           <Text key={session.filePath} color={isHighlighted ? "cyan" : undefined}>
             {isHighlighted ? ">" : " "} {displayLabel}
           </Text>
-        );
+        )
       })}
       {sessions.length > PAGE_SIZE && (
         <Text dimColor>
@@ -140,7 +140,7 @@ export function SessionList({
         </Text>
       )}
     </Box>
-  );
+  )
 }
 
 function formatSessionLabel(session: SessionSummary): string {
@@ -149,12 +149,12 @@ function formatSessionLabel(session: SessionSummary): string {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  });
-  return `${date} ${session.title}`;
+  })
+  return `${date} ${session.title}`
 }
 
 function truncateLabel(label: string, maxWidth: number): string {
-  if (label.length <= maxWidth) return label;
-  if (maxWidth <= 3) return label.slice(0, maxWidth);
-  return `${label.slice(0, maxWidth - 3)}...`;
+  if (label.length <= maxWidth) return label
+  if (maxWidth <= 3) return label.slice(0, maxWidth)
+  return `${label.slice(0, maxWidth - 3)}...`
 }

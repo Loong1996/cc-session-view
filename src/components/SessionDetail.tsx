@@ -1,28 +1,33 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Box, Text, useInput } from "ink";
-import type { ExportOptions, SessionDetail as SessionDetailType } from "../lib/types";
-import { ScrollIndicator } from "./ScrollIndicator";
+import { Box, Text, useInput } from "ink"
+import { useEffect, useMemo, useState } from "react"
+import type { ExportOptions, SessionDetail as SessionDetailType } from "../lib/types"
+import { ScrollIndicator } from "./ScrollIndicator"
 
 interface SessionDetailProps {
-  session: SessionDetailType;
-  exportOptions: ExportOptions;
-  onChangeOptions: (options: ExportOptions) => void;
-  onBack: () => void;
-  onExport: (format: "text" | "html") => void;
-  onViewInBrowser: () => void;
-  isActive?: boolean;
+  session: SessionDetailType
+  exportOptions: ExportOptions
+  onChangeOptions: (options: ExportOptions) => void
+  onBack: () => void
+  onExport: (format: "text" | "html") => void
+  onViewInBrowser: () => void
+  isActive?: boolean
 }
 
-type OptionKey = "includeUser" | "includeAssistant" | "includeToolUse" | "includeThinking";
+type OptionKey = "includeUser" | "includeAssistant" | "includeToolUse" | "includeThinking"
 
 const optionLabels: Record<OptionKey, string> = {
   includeUser: "User messages",
   includeAssistant: "Assistant messages",
   includeToolUse: "Tool use/result",
   includeThinking: "Thinking blocks",
-};
+}
 
-const optionKeys: OptionKey[] = ["includeUser", "includeAssistant", "includeToolUse", "includeThinking"];
+const optionKeys: OptionKey[] = [
+  "includeUser",
+  "includeAssistant",
+  "includeToolUse",
+  "includeThinking",
+]
 
 export function SessionDetail({
   session,
@@ -33,132 +38,137 @@ export function SessionDetail({
   onViewInBrowser,
   isActive = true,
 }: SessionDetailProps) {
-  const [showOptions, setShowOptions] = useState(false);
-  const [optionIndex, setOptionIndex] = useState(0);
-  const [pagination, setPagination] = useState({ scrollOffset: 0, pageSize: 10 });
+  const [showOptions, setShowOptions] = useState(false)
+  const [optionIndex, setOptionIndex] = useState(0)
+  const [pagination, setPagination] = useState({ scrollOffset: 0, pageSize: 10 })
 
   const filteredMessages = useMemo(
     () =>
       session.messages.filter((msg) => {
-        if (msg.type === "user" && !exportOptions.includeUser) return false;
-        if (msg.type === "assistant" && !exportOptions.includeAssistant) return false;
-        if ((msg.type === "tool_use" || msg.type === "tool_result") && !exportOptions.includeToolUse) {
-          return false;
+        if (msg.type === "user" && !exportOptions.includeUser) return false
+        if (msg.type === "assistant" && !exportOptions.includeAssistant) return false
+        if (
+          (msg.type === "tool_use" || msg.type === "tool_result") &&
+          !exportOptions.includeToolUse
+        ) {
+          return false
         }
-        if (msg.type === "thinking" && !exportOptions.includeThinking) return false;
-        return true;
+        if (msg.type === "thinking" && !exportOptions.includeThinking) return false
+        return true
       }),
-    [exportOptions, session.messages]
-  );
+    [exportOptions, session.messages],
+  )
 
   useEffect(() => {
-    const maxOffset = Math.max(0, filteredMessages.length - pagination.pageSize);
+    const maxOffset = Math.max(0, filteredMessages.length - pagination.pageSize)
     if (pagination.scrollOffset > maxOffset) {
-      setPagination((prev) => ({ ...prev, scrollOffset: maxOffset }));
+      setPagination((prev) => ({ ...prev, scrollOffset: maxOffset }))
     }
-  }, [filteredMessages.length, pagination.pageSize, pagination.scrollOffset]);
+  }, [filteredMessages.length, pagination.pageSize, pagination.scrollOffset])
 
   useInput((input, key) => {
-    if (!isActive) return;
+    if (!isActive) return
 
     if (showOptions) {
       if (key.escape || input === "o") {
-        setShowOptions(false);
-        return;
+        setShowOptions(false)
+        return
       }
       if (key.upArrow || input === "k") {
-        setOptionIndex((prev) => Math.max(0, prev - 1));
-        return;
+        setOptionIndex((prev) => Math.max(0, prev - 1))
+        return
       }
       if (key.downArrow || input === "j") {
-        setOptionIndex((prev) => Math.min(optionKeys.length - 1, prev + 1));
-        return;
+        setOptionIndex((prev) => Math.min(optionKeys.length - 1, prev + 1))
+        return
       }
       if (key.return || input === " ") {
-        const optKey = optionKeys[optionIndex];
+        const optKey = optionKeys[optionIndex]
         if (optKey) {
           onChangeOptions({
             ...exportOptions,
             [optKey]: !exportOptions[optKey],
-          });
+          })
         }
-        return;
+        return
       }
-      return;
+      return
     }
 
-    const maxOffset = Math.max(0, filteredMessages.length - pagination.pageSize);
+    const maxOffset = Math.max(0, filteredMessages.length - pagination.pageSize)
 
     if (key.escape || input === "q") {
-      onBack();
-      return;
+      onBack()
+      return
     }
     if (input === "t") {
-      onExport("text");
-      return;
+      onExport("text")
+      return
     }
     if (input === "h") {
-      onExport("html");
-      return;
+      onExport("html")
+      return
     }
     if (input === "v") {
-      onViewInBrowser();
-      return;
+      onViewInBrowser()
+      return
     }
     if (input === "o") {
-      setShowOptions(true);
-      return;
+      setShowOptions(true)
+      return
     }
 
     if (input === "j" || key.downArrow) {
       setPagination((prev) => ({
         ...prev,
         scrollOffset: Math.min(prev.scrollOffset + 1, maxOffset),
-      }));
-      return;
+      }))
+      return
     }
     if (input === "k" || key.upArrow) {
       setPagination((prev) => ({
         ...prev,
         scrollOffset: Math.max(prev.scrollOffset - 1, 0),
-      }));
-      return;
+      }))
+      return
     }
     if (key.pageDown || (key.ctrl && input === "d")) {
       setPagination((prev) => ({
         ...prev,
         scrollOffset: Math.min(prev.scrollOffset + prev.pageSize, maxOffset),
-      }));
-      return;
+      }))
+      return
     }
     if (key.pageUp || (key.ctrl && input === "u")) {
       setPagination((prev) => ({
         ...prev,
         scrollOffset: Math.max(prev.scrollOffset - prev.pageSize, 0),
-      }));
-      return;
+      }))
+      return
     }
     if (input === "g" || key.home) {
-      setPagination((prev) => ({ ...prev, scrollOffset: 0 }));
-      return;
+      setPagination((prev) => ({ ...prev, scrollOffset: 0 }))
+      return
     }
     if (input === "G" || key.end) {
-      setPagination((prev) => ({ ...prev, scrollOffset: maxOffset }));
-      return;
+      setPagination((prev) => ({ ...prev, scrollOffset: maxOffset }))
+      return
     }
-  });
+  })
 
   const visibleMessages = filteredMessages.slice(
     pagination.scrollOffset,
-    pagination.scrollOffset + pagination.pageSize
-  );
-  const rangeStart = filteredMessages.length === 0 ? 0 : pagination.scrollOffset + 1;
-  const rangeEnd = Math.min(pagination.scrollOffset + pagination.pageSize, filteredMessages.length);
+    pagination.scrollOffset + pagination.pageSize,
+  )
+  const rangeStart = filteredMessages.length === 0 ? 0 : pagination.scrollOffset + 1
+  const rangeEnd = Math.min(pagination.scrollOffset + pagination.pageSize, filteredMessages.length)
 
   return (
     <Box flexDirection="column">
       <Box borderStyle="single" borderColor="gray" flexDirection="column" paddingX={1}>
-        <Text bold color="cyan">Session Info</Text>
+        <Text bold color="cyan">
+          Session Info
+        </Text>
         <Text>
           <Text dimColor>ID: </Text>
           <Text>{session.id}</Text>
@@ -198,14 +208,23 @@ export function SessionDetail({
       </Box>
 
       {showOptions && (
-        <Box borderStyle="round" borderColor="yellow" flexDirection="column" paddingX={1} marginY={1}>
-          <Text bold color="yellow">Export Options</Text>
-          <Text dimColor>[Up/Down] Navigate  [Enter/Space] Toggle  [o/ESC] Close</Text>
+        <Box
+          borderStyle="round"
+          borderColor="yellow"
+          flexDirection="column"
+          paddingX={1}
+          marginY={1}
+        >
+          <Text bold color="yellow">
+            Export Options
+          </Text>
+          <Text dimColor>[Up/Down] Navigate [Enter/Space] Toggle [o/ESC] Close</Text>
           <Box flexDirection="column" marginTop={1}>
             {optionKeys.map((key, i) => (
               <Box key={key}>
                 <Text color={i === optionIndex ? "cyan" : undefined}>
-                  {i === optionIndex ? ">" : " "} [{exportOptions[key] ? "x" : " "}] {optionLabels[key]}
+                  {i === optionIndex ? ">" : " "} [{exportOptions[key] ? "x" : " "}]{" "}
+                  {optionLabels[key]}
                 </Text>
               </Box>
             ))}
@@ -231,15 +250,15 @@ export function SessionDetail({
         />
       </Box>
     </Box>
-  );
+  )
 }
 
 interface MessageItemProps {
   message: {
-    type: string;
-    content: string;
-    toolName?: string;
-  };
+    type: string
+    content: string
+    toolName?: string
+  }
 }
 
 function MessageItem({ message }: MessageItemProps) {
@@ -249,7 +268,7 @@ function MessageItem({ message }: MessageItemProps) {
     tool_use: "yellow",
     tool_result: "magenta",
     thinking: "gray",
-  };
+  }
 
   const roleLabels: Record<string, string> = {
     user: "USER",
@@ -257,12 +276,12 @@ function MessageItem({ message }: MessageItemProps) {
     tool_use: "TOOL",
     tool_result: "RESULT",
     thinking: "THINK",
-  };
+  }
 
-  const color = roleColors[message.type] || "white";
-  const label = roleLabels[message.type] || message.type.toUpperCase();
+  const color = roleColors[message.type] || "white"
+  const label = roleLabels[message.type] || message.type.toUpperCase()
 
-  const shortContent = message.content.replace(/\n/g, " ").slice(0, 80);
+  const shortContent = message.content.replace(/\n/g, " ").slice(0, 80)
 
   return (
     <Box>
@@ -279,5 +298,5 @@ function MessageItem({ message }: MessageItemProps) {
         </Text>
       </Box>
     </Box>
-  );
+  )
 }

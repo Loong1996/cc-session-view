@@ -1,54 +1,56 @@
-import type { SessionDetail, ExportOptions, Message } from "./types";
+import type { ExportOptions, Message, SessionDetail } from "./types"
 
 /** Export to plain text format */
 export function exportToText(session: SessionDetail, options: ExportOptions): string {
-  const lines: string[] = [];
+  const lines: string[] = []
 
   // Header
-  lines.push("=".repeat(60));
-  lines.push(`Session: ${session.id}`);
-  lines.push(`Type: ${session.agentType}`);
-  lines.push(`Date: ${session.timestamp.toLocaleString("ja-JP")}`);
-  if (session.cwd) lines.push(`CWD: ${session.cwd}`);
-  if (session.gitBranch) lines.push(`Branch: ${session.gitBranch}`);
-  if (session.version) lines.push(`Version: ${session.version}`);
-  if (session.model) lines.push(`Model: ${session.model}`);
-  lines.push("=".repeat(60));
-  lines.push("");
+  lines.push("=".repeat(60))
+  lines.push(`Session: ${session.id}`)
+  lines.push(`Type: ${session.agentType}`)
+  lines.push(`Date: ${session.timestamp.toLocaleString("ja-JP")}`)
+  if (session.cwd) lines.push(`CWD: ${session.cwd}`)
+  if (session.gitBranch) lines.push(`Branch: ${session.gitBranch}`)
+  if (session.version) lines.push(`Version: ${session.version}`)
+  if (session.model) lines.push(`Model: ${session.model}`)
+  lines.push("=".repeat(60))
+  lines.push("")
 
   // Messages
-  const filteredMessages = filterMessages(session.messages, options);
+  const filteredMessages = filterMessages(session.messages, options)
   for (const msg of filteredMessages) {
-    const label = getMessageLabel(msg.type);
-    lines.push(`[${label}]`);
+    const label = getMessageLabel(msg.type)
+    lines.push(`[${label}]`)
     if (msg.toolName) {
-      lines.push(`Tool: ${msg.toolName}`);
+      lines.push(`Tool: ${msg.toolName}`)
     }
-    lines.push(msg.content);
-    lines.push("");
-    lines.push("-".repeat(40));
-    lines.push("");
+    lines.push(msg.content)
+    lines.push("")
+    lines.push("-".repeat(40))
+    lines.push("")
   }
 
-  return lines.join("\n");
+  return lines.join("\n")
 }
 
 /** Export to HTML format */
 export function exportToHtml(session: SessionDetail, options: ExportOptions): string {
-  const filteredMessages = filterMessages(session.messages, options);
+  const filteredMessages = filterMessages(session.messages, options)
 
   // Group consecutive assistant messages
-  const messageGroups = groupConsecutiveAssistantMessages(filteredMessages);
+  const messageGroups = groupConsecutiveAssistantMessages(filteredMessages)
 
-  const messagesHtml = messageGroups.map((group) => {
-    if (group.type === 'single') {
-      return renderSingleMessage(group.message, group.index);
-    } else {
-      return renderConsecutiveAssistantGroup(group.messages, group.startIndex);
-    }
-  }).join("\n");
+  const messagesHtml = messageGroups
+    .map((group) => {
+      if (group.type === "single") {
+        return renderSingleMessage(group.message, group.index)
+      } else {
+        return renderConsecutiveAssistantGroup(group.messages, group.startIndex)
+      }
+    })
+    .join("\n")
 
-  const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI";
+  const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI"
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -585,30 +587,46 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
           <span class="meta-key">Date</span>
           <span class="meta-val">${session.timestamp.toLocaleString("ja-JP")}</span>
         </div>
-        ${session.cwd ? `
+        ${
+          session.cwd
+            ? `
         <div class="meta-item">
           <span class="meta-key">CWD</span>
           <span class="meta-val" title="${escapeHtml(session.cwd)}">${escapeHtml(session.cwd)}</span>
         </div>
-        ` : ""}
-        ${session.gitBranch ? `
+        `
+            : ""
+        }
+        ${
+          session.gitBranch
+            ? `
         <div class="meta-item">
           <span class="meta-key">Branch</span>
           <span class="meta-val">${escapeHtml(session.gitBranch)}</span>
         </div>
-        ` : ""}
-        ${session.model ? `
+        `
+            : ""
+        }
+        ${
+          session.model
+            ? `
         <div class="meta-item">
           <span class="meta-key">Model</span>
           <span class="meta-val">${escapeHtml(session.model)}</span>
         </div>
-        ` : ""}
-        ${session.version ? `
+        `
+            : ""
+        }
+        ${
+          session.version
+            ? `
         <div class="meta-item">
           <span class="meta-key">Version</span>
           <span class="meta-val">${escapeHtml(session.version)}</span>
         </div>
-        ` : ""}
+        `
+            : ""
+        }
       </div>
     </header>
 
@@ -661,77 +679,77 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     }
   </script>
 </body>
-</html>`;
+</html>`
 }
 
 type SingleMessageGroup = {
-  type: 'single';
-  message: Message;
-  index: number;
-};
+  type: "single"
+  message: Message
+  index: number
+}
 
 type ConsecutiveAssistantGroup = {
-  type: 'consecutive';
-  messages: Message[];
-  startIndex: number;
-};
+  type: "consecutive"
+  messages: Message[]
+  startIndex: number
+}
 
-type MessageGroup = SingleMessageGroup | ConsecutiveAssistantGroup;
+type MessageGroup = SingleMessageGroup | ConsecutiveAssistantGroup
 
 function groupConsecutiveAssistantMessages(messages: Message[]): MessageGroup[] {
-  const groups: MessageGroup[] = [];
-  let i = 0;
+  const groups: MessageGroup[] = []
+  let i = 0
 
   while (i < messages.length) {
-    const msg = messages[i]!;
+    const msg = messages[i]!
 
-    if (msg.type === 'assistant') {
+    if (msg.type === "assistant") {
       // Count consecutive assistant messages
-      const consecutiveMessages: Message[] = [msg];
-      let j = i + 1;
-      while (j < messages.length && messages[j]!.type === 'assistant') {
-        consecutiveMessages.push(messages[j]!);
-        j++;
+      const consecutiveMessages: Message[] = [msg]
+      let j = i + 1
+      while (j < messages.length && messages[j]!.type === "assistant") {
+        consecutiveMessages.push(messages[j]!)
+        j++
       }
 
       if (consecutiveMessages.length >= 4) {
         // Group them together
         groups.push({
-          type: 'consecutive',
+          type: "consecutive",
           messages: consecutiveMessages,
           startIndex: i,
-        });
+        })
       } else {
         // Add them as individual messages
         for (let k = 0; k < consecutiveMessages.length; k++) {
           groups.push({
-            type: 'single',
+            type: "single",
             message: consecutiveMessages[k]!,
             index: i + k,
-          });
+          })
         }
       }
-      i = j;
+      i = j
     } else {
       groups.push({
-        type: 'single',
+        type: "single",
         message: msg,
         index: i,
-      });
-      i++;
+      })
+      i++
     }
   }
 
-  return groups;
+  return groups
 }
 
 function renderSingleMessage(msg: Message, i: number): string {
-  const typeClass = msg.type.replace("_", "-");
-  const toolInfo = msg.toolName ? `<code class="tool-tag">${escapeHtml(msg.toolName)}</code>` : "";
-  const content = escapeHtml(msg.content);
-  const isLong = msg.content.length > 800;
-  const typeLabel = getMessageLabel(msg.type);
-  const typeAbbr = getMessageAbbr(msg.type);
+  const typeClass = msg.type.replace("_", "-")
+  const toolInfo = msg.toolName ? `<code class="tool-tag">${escapeHtml(msg.toolName)}</code>` : ""
+  const content = escapeHtml(msg.content)
+  const isLong = msg.content.length > 800
+  const typeLabel = getMessageLabel(msg.type)
+  const typeAbbr = getMessageAbbr(msg.type)
 
   return `
     <article class="msg ${typeClass}" id="msg-${i}">
@@ -741,61 +759,71 @@ function renderSingleMessage(msg: Message, i: number): string {
       <div class="msg-main">
         <div class="msg-meta">
           ${toolInfo}
-          ${isLong ? `<button class="expand-btn" onclick="toggleMsg(${i})" data-expanded="false">
+          ${
+            isLong
+              ? `<button class="expand-btn" onclick="toggleMsg(${i})" data-expanded="false">
             <span class="expand-icon">▼</span>
-          </button>` : ""}
+          </button>`
+              : ""
+          }
         </div>
         <div class="msg-text ${isLong ? "is-collapsed" : ""}">
           <pre>${content}</pre>
         </div>
       </div>
     </article>
-  `;
+  `
 }
 
 function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number): string {
-  const groupId = `assistant-group-${startIndex}`;
-  const hiddenCount = messages.length - 2; // First and last are shown
-  const typeLabel = getMessageLabel('assistant');
-  const typeAbbr = getMessageAbbr('assistant');
+  const groupId = `assistant-group-${startIndex}`
+  const hiddenCount = messages.length - 2 // First and last are shown
+  const typeLabel = getMessageLabel("assistant")
+  const typeAbbr = getMessageAbbr("assistant")
 
   // First message (always visible)
-  const firstMsg = messages[0]!;
-  const firstContent = escapeHtml(firstMsg.content);
-  const firstIsLong = firstMsg.content.length > 800;
-  const firstIndex = startIndex;
+  const firstMsg = messages[0]!
+  const firstContent = escapeHtml(firstMsg.content)
+  const firstIsLong = firstMsg.content.length > 800
+  const firstIndex = startIndex
 
   // Last message (always visible)
-  const lastMsg = messages[messages.length - 1]!;
-  const lastContent = escapeHtml(lastMsg.content);
-  const lastIsLong = lastMsg.content.length > 800;
-  const lastIndex = startIndex + messages.length - 1;
+  const lastMsg = messages[messages.length - 1]!
+  const lastContent = escapeHtml(lastMsg.content)
+  const lastIsLong = lastMsg.content.length > 800
+  const lastIndex = startIndex + messages.length - 1
 
   // Middle messages (hidden by default)
-  const middleMessages = messages.slice(1, -1);
-  const middleHtml = middleMessages.map((msg, idx) => {
-    const content = escapeHtml(msg.content);
-    const isLong = msg.content.length > 800;
-    const msgIndex = startIndex + 1 + idx;
+  const middleMessages = messages.slice(1, -1)
+  const middleHtml = middleMessages
+    .map((msg, idx) => {
+      const content = escapeHtml(msg.content)
+      const isLong = msg.content.length > 800
+      const msgIndex = startIndex + 1 + idx
 
-    return `
+      return `
       <article class="msg assistant hidden-msg" id="msg-${msgIndex}">
         <div class="msg-indicator" title="${typeLabel}">
           <span class="msg-abbr">${typeAbbr}</span>
         </div>
         <div class="msg-main">
           <div class="msg-meta">
-            ${isLong ? `<button class="expand-btn" onclick="toggleMsg(${msgIndex})" data-expanded="false">
+            ${
+              isLong
+                ? `<button class="expand-btn" onclick="toggleMsg(${msgIndex})" data-expanded="false">
               <span class="expand-icon">▼</span>
-            </button>` : ""}
+            </button>`
+                : ""
+            }
           </div>
           <div class="msg-text ${isLong ? "is-collapsed" : ""}">
             <pre>${content}</pre>
           </div>
         </div>
       </article>
-    `;
-  }).join("\n");
+    `
+    })
+    .join("\n")
 
   return `
     <article class="msg assistant" id="msg-${firstIndex}">
@@ -804,9 +832,13 @@ function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number
       </div>
       <div class="msg-main">
         <div class="msg-meta">
-          ${firstIsLong ? `<button class="expand-btn" onclick="toggleMsg(${firstIndex})" data-expanded="false">
+          ${
+            firstIsLong
+              ? `<button class="expand-btn" onclick="toggleMsg(${firstIndex})" data-expanded="false">
             <span class="expand-icon">▼</span>
-          </button>` : ""}
+          </button>`
+              : ""
+          }
         </div>
         <div class="msg-text ${firstIsLong ? "is-collapsed" : ""}">
           <pre>${firstContent}</pre>
@@ -830,26 +862,31 @@ function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number
       </div>
       <div class="msg-main">
         <div class="msg-meta">
-          ${lastIsLong ? `<button class="expand-btn" onclick="toggleMsg(${lastIndex})" data-expanded="false">
+          ${
+            lastIsLong
+              ? `<button class="expand-btn" onclick="toggleMsg(${lastIndex})" data-expanded="false">
             <span class="expand-icon">▼</span>
-          </button>` : ""}
+          </button>`
+              : ""
+          }
         </div>
         <div class="msg-text ${lastIsLong ? "is-collapsed" : ""}">
           <pre>${lastContent}</pre>
         </div>
       </div>
     </article>
-  `;
+  `
 }
 
 function filterMessages(messages: Message[], options: ExportOptions): Message[] {
   return messages.filter((msg) => {
-    if (msg.type === "user" && !options.includeUser) return false;
-    if (msg.type === "assistant" && !options.includeAssistant) return false;
-    if ((msg.type === "tool_use" || msg.type === "tool_result") && !options.includeToolUse) return false;
-    if (msg.type === "thinking" && !options.includeThinking) return false;
-    return true;
-  });
+    if (msg.type === "user" && !options.includeUser) return false
+    if (msg.type === "assistant" && !options.includeAssistant) return false
+    if ((msg.type === "tool_use" || msg.type === "tool_result") && !options.includeToolUse)
+      return false
+    if (msg.type === "thinking" && !options.includeThinking) return false
+    return true
+  })
 }
 
 function getMessageLabel(type: string): string {
@@ -859,19 +896,19 @@ function getMessageLabel(type: string): string {
     tool_use: "TOOL USE",
     tool_result: "TOOL RESULT",
     thinking: "THINKING",
-  };
-  return labels[type] || type.toUpperCase();
+  }
+  return labels[type] || type.toUpperCase()
 }
 
-function getMessageIcon(type: string): string {
+function _getMessageIcon(type: string): string {
   const icons: Record<string, string> = {
     user: "👤",
     assistant: "🤖",
     tool_use: "⚡",
     tool_result: "📋",
     thinking: "💭",
-  };
-  return icons[type] || "💬";
+  }
+  return icons[type] || "💬"
 }
 
 function getMessageAbbr(type: string): string {
@@ -881,8 +918,8 @@ function getMessageAbbr(type: string): string {
     tool_use: "T",
     tool_result: "R",
     thinking: "?",
-  };
-  return abbrs[type] || "?";
+  }
+  return abbrs[type] || "?"
 }
 
 function escapeHtml(text: string): string {
@@ -891,5 +928,5 @@ function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/'/g, "&#039;")
 }

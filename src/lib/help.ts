@@ -1,15 +1,15 @@
 export interface KeyBinding {
-  key: string;
-  description: string;
+  key: string
+  description: string
 }
 
 export interface HelpSection {
-  title: string;
-  bindings: KeyBinding[];
+  title: string
+  bindings: KeyBinding[]
 }
 
 export interface HelpData {
-  sections: HelpSection[];
+  sections: HelpSection[]
 }
 
 export const listViewHelp: HelpData = {
@@ -45,7 +45,7 @@ export const listViewHelp: HelpData = {
       ],
     },
   ],
-};
+}
 
 export const detailViewHelp: HelpData = {
   sections: [
@@ -77,11 +77,11 @@ export const detailViewHelp: HelpData = {
       ],
     },
   ],
-};
+}
 
 export function getFooterHint(viewMode: "list" | "detail"): string {
   if (viewMode === "list") {
-    return "[Up/Down] Navigate  [Enter] Select  [TAB] Switch  [/] Search  [?] Help  [q] Quit";
+    return "[Up/Down] Navigate  [Enter] Select  [TAB] Switch  [/] Search  [?] Help  [q] Quit"
   }
-  return "[j/k] Scroll  [q] Back  [o] Options  [t] Text  [h] HTML  [v] View  [?] Help";
+  return "[j/k] Scroll  [q] Back  [o] Options  [t] Text  [h] HTML  [v] View  [?] Help"
 }

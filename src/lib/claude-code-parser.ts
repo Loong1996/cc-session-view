@@ -1,25 +1,25 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
-import type { SessionSummary, SessionDetail, Message, MessageType } from "./types";
+import { homedir } from "node:os"
+import { join } from "node:path"
+import type { Message, SessionDetail, SessionSummary } from "./types"
 
-const CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
+const CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects")
 
 /** Get Claude Code sessions directory */
 export async function getClaudeCodeSessionsDir(): Promise<string> {
-  return CLAUDE_PROJECTS_DIR;
+  return CLAUDE_PROJECTS_DIR
 }
 
 /** Get summaries of all Claude Code sessions */
 export async function listClaudeCodeSessions(): Promise<SessionSummary[]> {
-  const sessions: SessionSummary[] = [];
-  const glob = new Bun.Glob("**/*.jsonl");
+  const sessions: SessionSummary[] = []
+  const glob = new Bun.Glob("**/*.jsonl")
 
   try {
     for await (const path of glob.scan({ cwd: CLAUDE_PROJECTS_DIR, absolute: true })) {
       try {
-        const summary = await parseClaudeCodeSessionSummary(path);
+        const summary = await parseClaudeCodeSessionSummary(path)
         if (summary) {
-          sessions.push(summary);
+          sessions.push(summary)
         }
       } catch {
         // Ignore parse errors
@@ -30,45 +30,45 @@ export async function listClaudeCodeSessions(): Promise<SessionSummary[]> {
   }
 
   // Sort by timestamp descending
-  return sessions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  return sessions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 }
 
 /** Extract summary information from Claude Code session file */
 async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionSummary | null> {
-  const file = Bun.file(filePath);
-  const text = await file.text();
-  const lines = text.trim().split("\n");
+  const file = Bun.file(filePath)
+  const text = await file.text()
+  const lines = text.trim().split("\n")
 
-  let sessionId: string | undefined;
-  let timestamp: Date | undefined;
-  let cwd: string | undefined;
-  let gitBranch: string | undefined;
-  const userMessages: string[] = [];
+  let sessionId: string | undefined
+  let timestamp: Date | undefined
+  let cwd: string | undefined
+  let gitBranch: string | undefined
+  const userMessages: string[] = []
 
   for (const line of lines) {
-    if (!line.trim()) continue;
+    if (!line.trim()) continue
     try {
-      const record = JSON.parse(line);
+      const record = JSON.parse(line)
 
       // Get session ID and metadata
       if (record.sessionId && !sessionId) {
-        sessionId = record.sessionId;
+        sessionId = record.sessionId
       }
       if (record.timestamp && !timestamp) {
-        timestamp = new Date(record.timestamp);
+        timestamp = new Date(record.timestamp)
       }
       if (record.cwd && !cwd) {
-        cwd = record.cwd;
+        cwd = record.cwd
       }
       if (record.gitBranch && !gitBranch) {
-        gitBranch = record.gitBranch;
+        gitBranch = record.gitBranch
       }
 
       // Collect user messages
       if (record.type === "user") {
-        const content = extractMessageContent(record.message);
+        const content = extractMessageContent(record.message)
         if (content) {
-          userMessages.push(content);
+          userMessages.push(content)
         }
       }
     } catch {
@@ -77,17 +77,15 @@ async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionS
   }
 
   if (!sessionId || !timestamp) {
-    return null;
+    return null
   }
 
   // Select title: prefer messages not starting with "<", fallback to first message
-  const preferredMessage = userMessages.find((msg) => !msg.startsWith("<"));
-  const titleSource = preferredMessage ?? userMessages[0];
+  const preferredMessage = userMessages.find((msg) => !msg.startsWith("<"))
+  const titleSource = preferredMessage ?? userMessages[0]
 
   // Generate title (40 chars, convert newlines to spaces)
-  const title = titleSource
-    ? titleSource.replace(/\n/g, " ").slice(0, 40)
-    : "(No message)";
+  const title = titleSource ? titleSource.replace(/\n/g, " ").slice(0, 40) : "(No message)"
 
   return {
     id: sessionId,
@@ -97,55 +95,55 @@ async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionS
     timestamp,
     cwd,
     gitBranch,
-  };
+  }
 }
 
 /** Get Claude Code session details */
 export async function loadClaudeCodeSession(filePath: string): Promise<SessionDetail | null> {
-  const file = Bun.file(filePath);
-  const text = await file.text();
-  const lines = text.trim().split("\n");
+  const file = Bun.file(filePath)
+  const text = await file.text()
+  const lines = text.trim().split("\n")
 
-  let sessionId: string | undefined;
-  let timestamp: Date | undefined;
-  let cwd: string | undefined;
-  let gitBranch: string | undefined;
-  let version: string | undefined;
-  let model: string | undefined;
-  const messages: Message[] = [];
+  let sessionId: string | undefined
+  let timestamp: Date | undefined
+  let cwd: string | undefined
+  let gitBranch: string | undefined
+  let version: string | undefined
+  let model: string | undefined
+  const messages: Message[] = []
 
   for (const line of lines) {
-    if (!line.trim()) continue;
+    if (!line.trim()) continue
     try {
-      const record = JSON.parse(line);
+      const record = JSON.parse(line)
 
       // Get metadata
       if (record.sessionId && !sessionId) {
-        sessionId = record.sessionId;
+        sessionId = record.sessionId
       }
       if (record.timestamp && !timestamp) {
-        timestamp = new Date(record.timestamp);
+        timestamp = new Date(record.timestamp)
       }
       if (record.cwd && !cwd) {
-        cwd = record.cwd;
+        cwd = record.cwd
       }
       if (record.gitBranch && !gitBranch) {
-        gitBranch = record.gitBranch;
+        gitBranch = record.gitBranch
       }
       if (record.version && !version) {
-        version = record.version;
+        version = record.version
       }
 
       // Process messages
       if (record.type === "user") {
-        const userMessages = extractUserMessages(record);
-        messages.push(...userMessages);
+        const userMessages = extractUserMessages(record)
+        messages.push(...userMessages)
       } else if (record.type === "assistant") {
         if (record.message?.model && !model) {
-          model = record.message.model;
+          model = record.message.model
         }
-        const assistantMessages = extractAssistantMessages(record);
-        messages.push(...assistantMessages);
+        const assistantMessages = extractAssistantMessages(record)
+        messages.push(...assistantMessages)
       }
     } catch {
       // Ignore JSON parse errors
@@ -153,7 +151,7 @@ export async function loadClaudeCodeSession(filePath: string): Promise<SessionDe
   }
 
   if (!sessionId || !timestamp) {
-    return null;
+    return null
   }
 
   return {
@@ -166,41 +164,41 @@ export async function loadClaudeCodeSession(filePath: string): Promise<SessionDe
     version,
     model,
     messages,
-  };
+  }
 }
 
 /** Extract message content */
 function extractMessageContent(message: unknown): string | null {
-  if (!message || typeof message !== "object") return null;
-  const msg = message as Record<string, unknown>;
+  if (!message || typeof message !== "object") return null
+  const msg = message as Record<string, unknown>
 
   // If content is a string
   if (typeof msg.content === "string") {
-    return msg.content;
+    return msg.content
   }
 
   // If content is an array (content blocks)
   if (Array.isArray(msg.content)) {
     for (const block of msg.content) {
       if (block.type === "text" && typeof block.text === "string") {
-        return block.text;
+        return block.text
       }
       if (block.type === "input_text" && typeof block.text === "string") {
-        return block.text;
+        return block.text
       }
     }
   }
 
-  return null;
+  return null
 }
 
 /** Extract messages from user record */
 function extractUserMessages(record: Record<string, unknown>): Message[] {
-  const messages: Message[] = [];
-  const ts = record.timestamp ? new Date(record.timestamp as string) : undefined;
+  const messages: Message[] = []
+  const ts = record.timestamp ? new Date(record.timestamp as string) : undefined
 
-  if (!record.message || typeof record.message !== "object") return messages;
-  const msg = record.message as Record<string, unknown>;
+  if (!record.message || typeof record.message !== "object") return messages
+  const msg = record.message as Record<string, unknown>
 
   // If content is a string
   if (typeof msg.content === "string") {
@@ -208,8 +206,8 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
       type: "user",
       content: msg.content,
       timestamp: ts,
-    });
-    return messages;
+    })
+    return messages
   }
 
   // If content is an array
@@ -220,33 +218,32 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
           type: "user",
           content: block.text,
           timestamp: ts,
-        });
+        })
       } else if (block.type === "tool_result") {
-        const content = typeof block.content === "string"
-          ? block.content
-          : JSON.stringify(block.content);
+        const content =
+          typeof block.content === "string" ? block.content : JSON.stringify(block.content)
         messages.push({
           type: "tool_result",
           content: content.slice(0, 500), // Truncate long results
           toolId: block.tool_use_id,
           timestamp: ts,
-        });
+        })
       }
     }
   }
 
-  return messages;
+  return messages
 }
 
 /** Extract messages from assistant record */
 function extractAssistantMessages(record: Record<string, unknown>): Message[] {
-  const messages: Message[] = [];
-  const ts = record.timestamp ? new Date(record.timestamp as string) : undefined;
+  const messages: Message[] = []
+  const ts = record.timestamp ? new Date(record.timestamp as string) : undefined
 
-  if (!record.message || typeof record.message !== "object") return messages;
-  const msg = record.message as Record<string, unknown>;
+  if (!record.message || typeof record.message !== "object") return messages
+  const msg = record.message as Record<string, unknown>
 
-  if (!Array.isArray(msg.content)) return messages;
+  if (!Array.isArray(msg.content)) return messages
 
   for (const block of msg.content) {
     if (block.type === "thinking" && typeof block.thinking === "string") {
@@ -254,13 +251,13 @@ function extractAssistantMessages(record: Record<string, unknown>): Message[] {
         type: "thinking",
         content: block.thinking,
         timestamp: ts,
-      });
+      })
     } else if (block.type === "text" && typeof block.text === "string") {
       messages.push({
         type: "assistant",
         content: block.text,
         timestamp: ts,
-      });
+      })
     } else if (block.type === "tool_use") {
       messages.push({
         type: "tool_use",
@@ -268,9 +265,9 @@ function extractAssistantMessages(record: Record<string, unknown>): Message[] {
         toolName: block.name,
         toolId: block.id,
         timestamp: ts,
-      });
+      })
     }
   }
 
-  return messages;
+  return messages
 }

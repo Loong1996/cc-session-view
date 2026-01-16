@@ -9,16 +9,29 @@
   },
   "scripts": {
     "start": "bun run src/index.tsx",
-    "dev": "bun --watch run src/index.tsx"
+    "dev": "bun --watch run src/index.tsx",
+    "web": "bun run src/index.tsx web",
+    "web:dev": "bun --hot run src/index.tsx web",
+    "lint": "biome lint src/",
+    "lint:fix": "biome lint --write src/",
+    "format": "biome format --write src/",
+    "format:check": "biome format src/",
+    "check": "biome check src/",
+    "check:fix": "biome check --write src/",
+    "prepare": "lefthook install"
   },
   "dependencies": {
     "ink": "^5.2.0",
     "ink-select-input": "^6.0.0",
-    "react": "^18.3.1"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.3.11",
     "@types/bun": "latest",
-    "@types/react": "^18.3.0"
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "lefthook": "^2.0.15"
   },
   "peerDependencies": {
     "typescript": "^5"

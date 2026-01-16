@@ -1,6 +1,14 @@
 #!/usr/bin/env bun
-import React from "react";
-import { render } from "ink";
-import { App } from "./App";
+import { render } from "ink"
+import { App } from "./App"
 
-render(<App />);
+const subcommand = process.argv[2]
+
+if (subcommand === "web") {
+  // Web server mode
+  const { startServer } = await import("./server")
+  startServer()
+} else {
+  // TUI mode (default)
+  render(<App />)
+}

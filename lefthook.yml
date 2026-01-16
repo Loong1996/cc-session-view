@@ -1,0 +1,11 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome-check:
+      glob: "*.{js,ts,jsx,tsx,json}"
+      run: bunx biome check --staged --no-errors-on-unmatched --colors=off
+      stage_fixed: true
+    biome-format:
+      glob: "*.{js,ts,jsx,tsx,json}"
+      run: bunx biome format --staged --no-errors-on-unmatched --write --colors=off
+      stage_fixed: true

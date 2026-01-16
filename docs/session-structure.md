@@ -10,7 +10,7 @@ This document describes the detailed structure of session files for Claude Code 
 ~/.claude/projects/<project-path-encoded>/
 ```
 
-The project path is encoded with `-` separators (e.g., `/Users/john/projects/miru` → `-Users-john-projects-miru`).
+The project path is encoded with `-` separators (e.g., `/Users/username/projects/myapp` → `-Users-username-projects-myapp`).
 
 ### File Format
 
@@ -52,7 +52,7 @@ Message from the user.
   "timestamp": "2026-01-14T09:18:22.684Z",
   "isSidechain": false,
   "userType": "external",
-  "cwd": "/Users/john/projects/miru",
+  "cwd": "/Users/username/projects/myapp",
   "version": "2.1.7",
   "gitBranch": "main",
   "message": {
@@ -101,7 +101,7 @@ Response from the assistant.
   "timestamp": "2026-01-14T09:18:26.300Z",
   "isSidechain": false,
   "userType": "external",
-  "cwd": "/Users/john/projects/miru",
+  "cwd": "/Users/username/projects/myapp",
   "version": "2.1.7",
   "gitBranch": "main",
   "requestId": "req_011CX729h7ECLMNMAQEp3YZ5",
@@ -125,7 +125,7 @@ Response from the assistant.
         "id": "toolu_01GkFFLi3j5PxyAnQmRgbs3v",
         "name": "Read",
         "input": {
-          "file_path": "/Users/john/projects/miru/tasks/refactor01.md"
+          "file_path": "/Users/username/projects/myapp/tasks/refactor01.md"
         }
       }
     ],
@@ -224,7 +224,7 @@ Session metadata. Appears once at the beginning of the file.
   "payload": {
     "id": "019bc252-da71-7dc3-9acb-55c6b5993c62",
     "timestamp": "2026-01-15T15:42:48.433Z",
-    "cwd": "/Users/john/projects/miru",
+    "cwd": "/Users/username/projects/myapp",
     "originator": "codex_cli_rs",
     "cli_version": "0.80.0",
     "instructions": "...",
@@ -233,7 +233,7 @@ Session metadata. Appears once at the beginning of the file.
     "git": {
       "commit_hash": "eb88330832b4424757e82b404e0ff98e65be4fa7",
       "branch": "main",
-      "repository_url": "git@github.com:dotneet/miru.git"
+      "repository_url": "git@github.com:username/myapp.git"
     }
   }
 }
@@ -271,7 +271,7 @@ Message (user or assistant).
   "payload": {
     "type": "function_call",
     "name": "shell_command",
-    "arguments": "{\"command\":\"ls\",\"workdir\":\"/Users/john/projects/miru\"}",
+    "arguments": "{\"command\":\"ls\",\"workdir\":\"/Users/username/projects/myapp\"}",
     "call_id": "call_cVqbFjeh33qqmk9AXzyf6DYc"
   }
 }
@@ -396,7 +396,7 @@ Shell command execution.
     "env": {},
     "timeout_ms": 120000,
     "user": "root",
-    "working_directory": "/Users/john/projects/"
+    "working_directory": "/Users/username/projects/"
   },
   "call_id": "call_xyxnTM81oQySE18Oqkjuhfrq"
 }

@@ -1,13 +1,18 @@
 # Agent Session View
 
-A TUI tool for browsing and exporting session history from Claude Code and Codex CLI.
+A Terminal User Interface (TUI) tool for browsing, viewing, and exporting conversation session history from **Claude Code** and **Codex CLI**.
 
 ## Features
 
-- **Session List**: Display Claude Code / Codex sessions sorted by timestamp
-- **Tab Switching**: Switch between Claude Code and Codex using TAB key
-- **Session Details**: View metadata (ID, date, working directory, Git branch, etc.) and conversation history
-- **Export**: Export to plain text or HTML format
+- **Unified Session Browser**: View sessions from both Claude Code and Codex CLI in a single interface, sorted by timestamp (newest first)
+- **Tab Switching**: Seamlessly switch between Claude Code and Codex sessions using the TAB key
+- **Rich Session Metadata**: View session ID, timestamp, working directory, Git branch, model name, and CLI version
+- **Full Conversation History**: Browse complete conversation threads with user messages, assistant responses, tool usage, and thinking blocks
+- **Flexible Message Filtering**: Toggle visibility of user messages, assistant messages, tool use/results, and thinking blocks
+- **Multiple Export Formats**:
+  - **Plain Text**: Clean, readable text format with headers and message separators
+  - **Styled HTML**: Beautiful HTML export with color-coded messages, collapsible long content, responsive design, and print-friendly styles
+- **Browser Preview**: Instantly open HTML exports in your default browser for quick review
 
 ## Session File Locations
 
@@ -24,51 +29,102 @@ cd agent-session-view
 bun install
 ```
 
+### Global Installation (Optional)
+
+To use the `asp` command globally:
+
+```bash
+bun link
+```
+
 ## Usage
 
 ```bash
+# Run directly
 bun run start
-```
 
-### Keyboard Controls
+# Or use the command (after bun link)
+asp
 
-| Key | Action |
-|-----|--------|
-| `↑` `↓` | Select session |
-| `Enter` | View session details |
-| `TAB` | Switch between Claude Code / Codex |
-| `t` | Export as text |
-| `h` | Export as HTML |
-| `q` / `ESC` | Back / Exit |
-
-### Export
-
-Exported files are saved to the `./exported/` directory.
-
-- **Text format**: `session-<id>.txt`
-- **HTML format**: `session-<id>.html` - Styled with CSS, long messages are collapsible
-
-#### Export Options (Default)
-
-| Option | Default |
-|--------|---------|
-| User messages | Enabled |
-| Assistant messages | Enabled |
-| Tool use | Disabled |
-| Thinking | Disabled |
-
-## Tech Stack
-
-- TypeScript
-- Bun
-- [Ink](https://github.com/vadimdemedes/ink) - React for CLIs
-
-## Development
-
-```bash
 # Development mode (auto-restart on file changes)
 bun run dev
 ```
+
+## Keyboard Controls
+
+### List View
+
+| Key | Action |
+|-----|--------|
+| `↑` `↓` | Navigate through sessions |
+| `Enter` | View session details |
+| `TAB` | Switch between Claude Code / Codex |
+| `q` / `ESC` | Exit application |
+
+### Detail View
+
+| Key | Action |
+|-----|--------|
+| `↑` `↓` | Scroll through conversation |
+| `o` | Open export options menu |
+| `t` | Export as text |
+| `h` | Export as HTML |
+| `v` | Open HTML preview in browser |
+| `q` / `ESC` | Back to session list |
+
+### Export Options Menu
+
+| Key | Action |
+|-----|--------|
+| `↑` `↓` | Navigate options |
+| `Enter` / `Space` | Toggle option |
+| `o` / `ESC` | Close menu |
+
+## Export
+
+Exported files are saved to the `./exported/` directory with the naming pattern:
+- **Text**: `session-{agent}-{session-id}.txt`
+- **HTML**: `session-{agent}-{session-id}.html`
+
+### Export Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| User messages | Enabled | Include user input messages |
+| Assistant messages | Enabled | Include assistant responses |
+| Tool use | Disabled | Include tool invocations and results |
+| Thinking | Disabled | Include thinking/reasoning blocks |
+
+### HTML Export Features
+
+- Color-coded message types (user, assistant, tool use, tool result, thinking)
+- Collapsible long messages (auto-collapsed for content > 800 characters)
+- Responsive design for mobile viewing
+- Print-friendly CSS styles
+- Custom fonts: Nunito (sans-serif), JetBrains Mono (monospace)
+
+## Message Types Extracted
+
+### Claude Code Sessions
+- User messages
+- Assistant text responses
+- Tool use (with input parameters)
+- Tool results (truncated to 500 chars)
+- Extended thinking blocks
+
+### Codex CLI Sessions
+- User messages
+- Assistant responses
+- Function calls (with arguments)
+- Function call outputs
+- Reasoning blocks
+
+## Tech Stack
+
+- **Runtime**: [Bun](https://bun.sh)
+- **Language**: TypeScript
+- **UI Framework**: [Ink](https://github.com/vadimdemedes/ink) (React for CLIs)
+- **Components**: [ink-select-input](https://github.com/vadimdemedes/ink-select-input)
 
 ## License
 

@@ -219,6 +219,8 @@ body::before {
 
 .filter-select {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   padding: var(--space-sm);
   font-family: var(--font-mono);
   font-size: 0.8rem;
@@ -228,6 +230,9 @@ body::before {
   cursor: pointer;
   outline: none;
   transition: all 0.2s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .filter-select:focus {

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { SessionDetail as SessionDetailType, ExportOptions } from "../lib/types";
+import type { ExportOptions, SessionDetail as SessionDetailType } from "../lib/types";
+import { ScrollIndicator } from "./ScrollIndicator";
 
 interface SessionDetailProps {
   session: SessionDetailType;
@@ -9,6 +10,7 @@ interface SessionDetailProps {
   onBack: () => void;
   onExport: (format: "text" | "html") => void;
   onViewInBrowser: () => void;
+  isActive?: boolean;
 }
 
 type OptionKey = "includeUser" | "includeAssistant" | "includeToolUse" | "includeThinking";
@@ -22,22 +24,53 @@ const optionLabels: Record<OptionKey, string> = {
 
 const optionKeys: OptionKey[] = ["includeUser", "includeAssistant", "includeToolUse", "includeThinking"];
 
-export function SessionDetail({ session, exportOptions, onChangeOptions, onBack, onExport, onViewInBrowser }: SessionDetailProps) {
+export function SessionDetail({
+  session,
+  exportOptions,
+  onChangeOptions,
+  onBack,
+  onExport,
+  onViewInBrowser,
+  isActive = true,
+}: SessionDetailProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [optionIndex, setOptionIndex] = useState(0);
+  const [pagination, setPagination] = useState({ scrollOffset: 0, pageSize: 10 });
+
+  const filteredMessages = useMemo(
+    () =>
+      session.messages.filter((msg) => {
+        if (msg.type === "user" && !exportOptions.includeUser) return false;
+        if (msg.type === "assistant" && !exportOptions.includeAssistant) return false;
+        if ((msg.type === "tool_use" || msg.type === "tool_result") && !exportOptions.includeToolUse) {
+          return false;
+        }
+        if (msg.type === "thinking" && !exportOptions.includeThinking) return false;
+        return true;
+      }),
+    [exportOptions, session.messages]
+  );
+
+  useEffect(() => {
+    const maxOffset = Math.max(0, filteredMessages.length - pagination.pageSize);
+    if (pagination.scrollOffset > maxOffset) {
+      setPagination((prev) => ({ ...prev, scrollOffset: maxOffset }));
+    }
+  }, [filteredMessages.length, pagination.pageSize, pagination.scrollOffset]);
 
   useInput((input, key) => {
+    if (!isActive) return;
+
     if (showOptions) {
-      // Options settings mode
       if (key.escape || input === "o") {
         setShowOptions(false);
         return;
       }
-      if (key.upArrow) {
+      if (key.upArrow || input === "k") {
         setOptionIndex((prev) => Math.max(0, prev - 1));
         return;
       }
-      if (key.downArrow) {
+      if (key.downArrow || input === "j") {
         setOptionIndex((prev) => Math.min(optionKeys.length - 1, prev + 1));
         return;
       }
@@ -54,35 +87,76 @@ export function SessionDetail({ session, exportOptions, onChangeOptions, onBack,
       return;
     }
 
-    // Normal mode
+    const maxOffset = Math.max(0, filteredMessages.length - pagination.pageSize);
+
     if (key.escape || input === "q") {
       onBack();
+      return;
     }
     if (input === "t") {
       onExport("text");
+      return;
     }
     if (input === "h") {
       onExport("html");
+      return;
     }
     if (input === "v") {
       onViewInBrowser();
+      return;
     }
     if (input === "o") {
       setShowOptions(true);
+      return;
+    }
+
+    if (input === "j" || key.downArrow) {
+      setPagination((prev) => ({
+        ...prev,
+        scrollOffset: Math.min(prev.scrollOffset + 1, maxOffset),
+      }));
+      return;
+    }
+    if (input === "k" || key.upArrow) {
+      setPagination((prev) => ({
+        ...prev,
+        scrollOffset: Math.max(prev.scrollOffset - 1, 0),
+      }));
+      return;
+    }
+    if (key.pageDown || (key.ctrl && input === "d")) {
+      setPagination((prev) => ({
+        ...prev,
+        scrollOffset: Math.min(prev.scrollOffset + prev.pageSize, maxOffset),
+      }));
+      return;
+    }
+    if (key.pageUp || (key.ctrl && input === "u")) {
+      setPagination((prev) => ({
+        ...prev,
+        scrollOffset: Math.max(prev.scrollOffset - prev.pageSize, 0),
+      }));
+      return;
+    }
+    if (input === "g" || key.home) {
+      setPagination((prev) => ({ ...prev, scrollOffset: 0 }));
+      return;
+    }
+    if (input === "G" || key.end) {
+      setPagination((prev) => ({ ...prev, scrollOffset: maxOffset }));
+      return;
     }
   });
 
-  const filteredMessages = session.messages.filter((msg) => {
-    if (msg.type === "user" && !exportOptions.includeUser) return false;
-    if (msg.type === "assistant" && !exportOptions.includeAssistant) return false;
-    if ((msg.type === "tool_use" || msg.type === "tool_result") && !exportOptions.includeToolUse) return false;
-    if (msg.type === "thinking" && !exportOptions.includeThinking) return false;
-    return true;
-  });
+  const visibleMessages = filteredMessages.slice(
+    pagination.scrollOffset,
+    pagination.scrollOffset + pagination.pageSize
+  );
+  const rangeStart = filteredMessages.length === 0 ? 0 : pagination.scrollOffset + 1;
+  const rangeEnd = Math.min(pagination.scrollOffset + pagination.pageSize, filteredMessages.length);
 
   return (
     <Box flexDirection="column">
-      {/* Metadata */}
       <Box borderStyle="single" borderColor="gray" flexDirection="column" paddingX={1}>
         <Text bold color="cyan">Session Info</Text>
         <Text>
@@ -123,11 +197,10 @@ export function SessionDetail({ session, exportOptions, onChangeOptions, onBack,
         )}
       </Box>
 
-      {/* Options settings panel */}
       {showOptions && (
         <Box borderStyle="round" borderColor="yellow" flexDirection="column" paddingX={1} marginY={1}>
           <Text bold color="yellow">Export Options</Text>
-          <Text dimColor>[↑↓] Navigate  [Enter/Space] Toggle  [o/ESC] Close</Text>
+          <Text dimColor>[Up/Down] Navigate  [Enter/Space] Toggle  [o/ESC] Close</Text>
           <Box flexDirection="column" marginTop={1}>
             {optionKeys.map((key, i) => (
               <Box key={key}>
@@ -140,20 +213,22 @@ export function SessionDetail({ session, exportOptions, onChangeOptions, onBack,
         </Box>
       )}
 
-      {/* Help text */}
-      <Box marginY={1}>
-        <Text dimColor>[q/ESC] Back  [o] Options  [t] Text  [h] HTML  [v] View</Text>
-      </Box>
-
-      {/* Conversation history */}
       <Box flexDirection="column" marginTop={1}>
-        <Text bold color="cyan">Messages ({filteredMessages.length}/{session.messages.length})</Text>
-        {filteredMessages.slice(0, 20).map((msg, i) => (
-          <MessageItem key={i} message={msg} />
+        <Box justifyContent="space-between">
+          <Text bold color="cyan">
+            Messages [{rangeStart}-{rangeEnd}/{filteredMessages.length}]
+          </Text>
+          <Text dimColor>[j/k] Scroll</Text>
+        </Box>
+        {visibleMessages.map((msg, i) => (
+          <MessageItem key={`${pagination.scrollOffset}-${i}`} message={msg} />
         ))}
-        {filteredMessages.length > 20 && (
-          <Text dimColor>... and {filteredMessages.length - 20} more messages</Text>
-        )}
+        {filteredMessages.length === 0 && <Text dimColor>No messages</Text>}
+        <ScrollIndicator
+          current={pagination.scrollOffset}
+          total={filteredMessages.length}
+          pageSize={pagination.pageSize}
+        />
       </Box>
     </Box>
   );
@@ -187,15 +262,14 @@ function MessageItem({ message }: MessageItemProps) {
   const color = roleColors[message.type] || "white";
   const label = roleLabels[message.type] || message.type.toUpperCase();
 
-  // Truncate content for display
-  const shortContent = message.content
-    .replace(/\n/g, " ")
-    .slice(0, 80);
+  const shortContent = message.content.replace(/\n/g, " ").slice(0, 80);
 
   return (
     <Box>
       <Box width={8}>
-        <Text color={color} bold>[{label}]</Text>
+        <Text color={color} bold>
+          [{label}]
+        </Text>
       </Box>
       <Box flexShrink={1}>
         <Text wrap="truncate">

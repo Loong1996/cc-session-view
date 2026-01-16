@@ -1,23 +1,41 @@
-import React, { useState, useEffect } from "react";
-import { Box, Text, useApp, useInput } from "ink";
+import React, { useEffect, useMemo, useState } from "react";
+import { Box, Text, useApp, useInput, useStdout } from "ink";
 import { TabSelector } from "./components/TabSelector";
 import { SessionList } from "./components/SessionList";
 import { SessionDetail } from "./components/SessionDetail";
+import { SearchBar } from "./components/SearchBar";
+import { FilterBar } from "./components/FilterBar";
+import { DateFilterMenu } from "./components/DateFilterMenu";
+import { ProjectFilterMenu } from "./components/ProjectFilterMenu";
+import { SessionPreview } from "./components/SessionPreview";
+import { HelpOverlay } from "./components/HelpOverlay";
+import { Footer } from "./components/Footer";
 import { listClaudeCodeSessions, loadClaudeCodeSession } from "./lib/claude-code-parser";
 import { listCodexSessions, loadCodexSession } from "./lib/codex-parser";
-import { exportToText, exportToHtml } from "./lib/exporter";
+import { exportToHtml, exportToText } from "./lib/exporter";
+import { filterSessions, extractProjects } from "./lib/filter";
+import { useLayout } from "./lib/layout";
+import { detailViewHelp, getFooterHint, listViewHelp } from "./lib/help";
+import { usePreviewSession } from "./hooks/usePreviewSession";
 import type {
   AgentType,
   SessionSummary,
   SessionDetail as SessionDetailType,
   ExportOptions,
+  FilterState,
 } from "./lib/types";
-import { defaultExportOptions } from "./lib/types";
+import { defaultExportOptions, defaultFilterState } from "./lib/types";
 
 type ViewMode = "list" | "detail";
 
 export function App() {
   const { exit } = useApp();
+  const { stdout } = useStdout();
+  const columns = stdout?.columns ?? 80;
+  const rows = stdout?.rows ?? 24;
+  const contentColumns = Math.max(20, columns - 2);
+  const contentRows = Math.max(10, rows - 2);
+  const helpHeight = Math.max(1, contentRows);
   const [activeTab, setActiveTab] = useState<AgentType>("claude-code");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [claudeSessions, setClaudeSessions] = useState<SessionSummary[]>([]);
@@ -28,7 +46,15 @@ export function App() {
   const [exportOptions, setExportOptions] = useState<ExportOptions>(defaultExportOptions);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  // Load session list
+  const [filterState, setFilterState] = useState<FilterState>(defaultFilterState);
+  const [filterMode, setFilterMode] = useState<"none" | "search" | "date" | "project">("none");
+  const [searchDraft, setSearchDraft] = useState("");
+  const [searchBackup, setSearchBackup] = useState("");
+
+  const [showHelp, setShowHelp] = useState(false);
+  const [previewEnabled, setPreviewEnabled] = useState(true);
+  const [highlightedSession, setHighlightedSession] = useState<SessionSummary | null>(null);
+
   useEffect(() => {
     async function loadSessions() {
       setLoading(true);
@@ -49,23 +75,70 @@ export function App() {
     loadSessions();
   }, []);
 
-  // Handle key input
-  useInput((input, key) => {
-    // Detail view has its own input handling
-    if (viewMode === "detail") return;
+  const currentSessions = activeTab === "claude-code" ? claudeSessions : codexSessions;
+  const filteredSessions = useMemo(
+    () => filterSessions(currentSessions, filterState),
+    [currentSessions, filterState]
+  );
+  const projects = useMemo(() => extractProjects(currentSessions), [currentSessions]);
 
-    // TAB to switch tabs
-    if (key.tab) {
-      setActiveTab((prev) => (prev === "claude-code" ? "codex" : "claude-code"));
+  const layout = useLayout(previewEnabled, contentColumns);
+  const { previewSession, loading: previewLoading } = usePreviewSession(highlightedSession);
+
+  useInput((input, key) => {
+    if (input === "?") {
+      setShowHelp((prev) => !prev);
+      return;
+    }
+    if (showHelp) {
+      if (input === "q" || key.escape) {
+        setShowHelp(false);
+      }
+      return;
     }
 
-    // q or Ctrl+C to exit
+    if (viewMode === "detail") return;
+    if (filterMode !== "none") return;
+
+    if (key.tab) {
+      setActiveTab((prev) => (prev === "claude-code" ? "codex" : "claude-code"));
+      return;
+    }
+
+    if (input === "/") {
+      setSearchBackup(filterState.searchQuery);
+      setSearchDraft(filterState.searchQuery);
+      setFilterMode("search");
+      return;
+    }
+
+    if (input === "d") {
+      setFilterMode("date");
+      return;
+    }
+
+    if (input === "p") {
+      setFilterMode("project");
+      return;
+    }
+
+    if (key.ctrl && input === "l") {
+      setFilterState(defaultFilterState);
+      setSearchDraft("");
+      setSearchBackup("");
+      return;
+    }
+
+    if (input === "P") {
+      setPreviewEnabled((prev) => !prev);
+      return;
+    }
+
     if (input === "q" || (key.ctrl && input === "c")) {
       exit();
     }
   });
 
-  // Handle session selection
   async function handleSelectSession(summary: SessionSummary) {
     setLoading(true);
     try {
@@ -87,13 +160,11 @@ export function App() {
     }
   }
 
-  // Return from detail view
   function handleBack() {
     setViewMode("list");
     setSelectedSession(null);
   }
 
-  // Handle export
   async function handleExport(format: "text" | "html") {
     if (!selectedSession) return;
 
@@ -109,7 +180,6 @@ export function App() {
     const filepath = `${exportDir}/${filename}`;
 
     try {
-      // Create exported directory if it doesn't exist
       const fs = await import("node:fs/promises");
       await fs.mkdir(exportDir, { recursive: true });
 
@@ -121,7 +191,6 @@ export function App() {
     }
   }
 
-  // Handle viewing in browser
   async function handleViewInBrowser() {
     if (!selectedSession) return;
 
@@ -133,7 +202,6 @@ export function App() {
 
     try {
       await Bun.write(filepath, content);
-      // Open browser with open command
       const proc = Bun.spawn(["open", filepath]);
       await proc.exited;
       setStatusMessage(`Opened in browser: ${filepath}`);
@@ -143,55 +211,107 @@ export function App() {
     }
   }
 
-  const currentSessions = activeTab === "claude-code" ? claudeSessions : codexSessions;
+  const currentHelp = viewMode === "list" ? listViewHelp : detailViewHelp;
+  const footerHint = getFooterHint(viewMode);
+  const filterCountLabel =
+    filteredSessions.length === currentSessions.length
+      ? `${filteredSessions.length} sessions found`
+      : `${filteredSessions.length} sessions found (filtered from ${currentSessions.length})`;
 
   return (
-    <Box flexDirection="column" padding={1}>
-      {/* Header */}
+    <Box flexDirection="column" padding={1} width={columns} height={rows}>
       <Box marginBottom={1}>
         <Text bold color="cyan">Agent Session Print</Text>
         <Text dimColor> - View Claude Code &amp; Codex sessions</Text>
       </Box>
 
-      {/* Error display */}
       {error && (
         <Box marginBottom={1}>
           <Text color="red">Error: {error}</Text>
         </Box>
       )}
 
-      {/* Status message */}
-      {statusMessage && (
-        <Box marginBottom={1}>
-          <Text color="green">{statusMessage}</Text>
+      {showHelp ? (
+        <Box height={helpHeight} width={contentColumns} justifyContent="center" alignItems="center">
+          <HelpOverlay helpData={currentHelp} onClose={() => setShowHelp(false)} />
         </Box>
-      )}
-
-      {/* Main content */}
-      {loading ? (
+      ) : loading ? (
         <Box>
           <Text dimColor>Loading...</Text>
         </Box>
       ) : viewMode === "list" ? (
         <>
-          {/* Tab selector */}
           <TabSelector activeTab={activeTab} onTabChange={setActiveTab} />
 
-          {/* Session list */}
           <Box marginTop={1} flexDirection="column">
-            <Text dimColor>
-              {currentSessions.length} sessions found
-            </Text>
-            <SessionList
-              sessions={currentSessions}
-              onSelect={handleSelectSession}
-              isActive={true}
-            />
+            {filterMode === "search" && (
+              <SearchBar
+                value={searchDraft}
+                onChange={(value) => {
+                  setSearchDraft(value);
+                  setFilterState((prev) => ({ ...prev, searchQuery: value }));
+                }}
+                onSubmit={() => setFilterMode("none")}
+                onCancel={() => {
+                  setFilterState((prev) => ({ ...prev, searchQuery: searchBackup }));
+                  setSearchDraft(searchBackup);
+                  setFilterMode("none");
+                }}
+                isActive={true}
+              />
+            )}
+            <FilterBar filter={filterState} />
           </Box>
 
-          {/* Help text */}
-          <Box marginTop={1}>
-            <Text dimColor>[↑↓] Navigate  [Enter] Select  [TAB] Switch tab  [q] Quit</Text>
+          {filterMode === "date" && (
+            <Box marginTop={1}>
+              <DateFilterMenu
+                current={filterState.dateFilter}
+                onSelect={(value) => {
+                  setFilterState((prev) => ({ ...prev, dateFilter: value }));
+                  setFilterMode("none");
+                }}
+                onCancel={() => setFilterMode("none")}
+                isActive={true}
+              />
+            </Box>
+          )}
+
+          {filterMode === "project" && (
+            <Box marginTop={1}>
+              <ProjectFilterMenu
+                current={filterState.projectPath}
+                projects={projects}
+                onSelect={(value) => {
+                  setFilterState((prev) => ({ ...prev, projectPath: value }));
+                  setFilterMode("none");
+                }}
+                onCancel={() => setFilterMode("none")}
+                isActive={true}
+              />
+            </Box>
+          )}
+
+          <Box marginTop={1} flexDirection="row">
+            <Box flexDirection="column" width={layout.listWidth} marginRight={layout.showPreview ? 1 : 0}>
+              <Text dimColor>{filterCountLabel}</Text>
+              <SessionList
+                sessions={filteredSessions}
+                onSelect={handleSelectSession}
+                onHighlight={setHighlightedSession}
+                isActive={filterMode === "none"}
+                width={layout.listWidth}
+              />
+            </Box>
+
+            {layout.showPreview && (
+              <SessionPreview
+                session={previewSession}
+                summary={highlightedSession}
+                loading={previewLoading}
+                width={layout.previewWidth}
+              />
+            )}
           </Box>
         </>
       ) : selectedSession ? (
@@ -202,8 +322,11 @@ export function App() {
           onBack={handleBack}
           onExport={handleExport}
           onViewInBrowser={handleViewInBrowser}
+          isActive={true}
         />
       ) : null}
+
+      {!showHelp && <Footer hint={footerHint} statusMessage={statusMessage} />}
     </Box>
   );
 }

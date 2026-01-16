@@ -13,6 +13,22 @@ export interface SessionSummary {
   gitBranch?: string;
 }
 
+/** Date filter types */
+export type DateFilter = "today" | "yesterday" | "this-week" | "last-week" | "this-month" | "all";
+
+/** Filter state for session list */
+export interface FilterState {
+  searchQuery: string;
+  dateFilter: DateFilter;
+  projectPath: string | null;
+}
+
+export const defaultFilterState: FilterState = {
+  searchQuery: "",
+  dateFilter: "all",
+  projectPath: null,
+};
+
 /** Message types */
 export type MessageType = "user" | "assistant" | "tool_use" | "tool_result" | "thinking";
 

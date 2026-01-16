@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { MessageRenderer } from "./MessageRenderer"
 
 interface BranchMessage {
@@ -48,10 +48,14 @@ export function BranchDetailView({
   const [exporting, setExporting] = useState(false)
   const [includeOtherAgents, setIncludeOtherAgents] = useState(false)
 
-  // Reset toggle when branch or agent changes
-  useEffect(() => {
+  // Reset toggle when branch or agent changes (React recommended pattern)
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [prevKey, setPrevKey] = useState(`${branchName}-${currentAgentType}`)
+  const currentKey = `${branchName}-${currentAgentType}`
+  if (currentKey !== prevKey) {
+    setPrevKey(currentKey)
     setIncludeOtherAgents(false)
-  }, [branchName, currentAgentType])
+  }
 
   const handleBranchExport = async (format: "html" | "text") => {
     setExporting(true)

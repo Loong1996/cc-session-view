@@ -1,18 +1,16 @@
 # Agent Session View
 
-A Terminal User Interface (TUI) tool for browsing, viewing, and exporting conversation session history from **Claude Code** and **Codex CLI**.
+A session viewer for browsing, viewing, and exporting conversation history from **Claude Code** and **Codex CLI**. Available as both a web interface and a terminal UI.
 
 ## Features
 
 - **Unified Session Browser**: View sessions from both Claude Code and Codex CLI in a single interface, sorted by timestamp (newest first)
-- **Tab Switching**: Seamlessly switch between Claude Code and Codex sessions using the TAB key
 - **Rich Session Metadata**: View session ID, timestamp, working directory, Git branch, model name, and CLI version
 - **Full Conversation History**: Browse complete conversation threads with user messages, assistant responses, tool usage, and thinking blocks
 - **Flexible Message Filtering**: Toggle visibility of user messages, assistant messages, tool use/results, and thinking blocks
 - **Multiple Export Formats**:
   - **Plain Text**: Clean, readable text format with headers and message separators
   - **Styled HTML**: Beautiful HTML export with color-coded messages, collapsible long content, responsive design, and print-friendly styles
-- **Browser Preview**: Instantly open HTML exports in your default browser for quick review
 
 ## Installation
 
@@ -22,19 +20,9 @@ cd agent-session-view
 bun install
 ```
 
-## Usage
+## Quick Start
 
-### TUI Mode (Terminal)
-
-```bash
-# Run directly
-bun run start
-
-# Development mode (auto-restart on file changes)
-bun run dev
-```
-
-### Web Mode (Browser)
+### Web Mode (Recommended)
 
 ```bash
 # Start web server
@@ -46,7 +34,17 @@ bun run web:dev
 
 Access http://localhost:3456 in your browser.
 
-## Web Interface Features
+### TUI Mode
+
+```bash
+# Run TUI
+bun run start
+
+# Development mode (auto-restart on file changes)
+bun run dev
+```
+
+## Web Interface
 
 The web interface provides a modern browser-based experience for viewing sessions:
 
@@ -56,7 +54,6 @@ The web interface provides a modern browser-based experience for viewing session
 - **Project Filter**: Filter sessions by working directory
 - **Session Detail View**: View full conversation history with syntax highlighting
 - **Export**: Download sessions as HTML or plain text directly from the browser
-- **Hot Module Replacement**: Development mode supports HMR for rapid iteration
 
 ### API Endpoints
 
@@ -67,7 +64,9 @@ The web interface provides a modern browser-based experience for viewing session
 | `/api/projects` | GET | List projects (working directories) |
 | `/api/export` | POST | Export session to HTML/text |
 
-## TUI Keyboard Controls
+## TUI Interface
+
+The TUI provides a keyboard-driven terminal experience.
 
 ### List View
 
@@ -120,7 +119,7 @@ Exported files are saved to the `./exported/` directory with the naming pattern:
 - Print-friendly CSS styles
 - Custom fonts: Nunito (sans-serif), JetBrains Mono (monospace)
 
-## Message Types Extracted
+## Supported Session Data
 
 ### Claude Code Sessions
 - User messages

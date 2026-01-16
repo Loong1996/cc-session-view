@@ -8,18 +8,51 @@ interface SessionListProps {
   onHighlight?: (session: SessionSummary | null) => void;
   isActive: boolean;
   width?: number;
+  highlightIndex?: number;
+  onHighlightIndexChange?: (index: number) => void;
 }
 
 const PAGE_SIZE = 15;
 
-export function SessionList({ sessions, onSelect, onHighlight, isActive, width }: SessionListProps) {
-  const [highlightIndex, setHighlightIndex] = useState(0);
+export function SessionList({
+  sessions,
+  onSelect,
+  onHighlight,
+  isActive,
+  width,
+  highlightIndex: controlledIndex,
+  onHighlightIndexChange,
+}: SessionListProps) {
+  const [internalIndex, setInternalIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
 
+  // Use controlled index if provided, otherwise use internal state
+  const isControlled = controlledIndex !== undefined;
+  const highlightIndex = isControlled ? controlledIndex : internalIndex;
+
+  const setHighlightIndex = (newIndex: number | ((prev: number) => number)) => {
+    const resolvedIndex = typeof newIndex === 'function' ? newIndex(highlightIndex) : newIndex;
+    if (isControlled && onHighlightIndexChange) {
+      onHighlightIndexChange(resolvedIndex);
+    } else {
+      setInternalIndex(resolvedIndex);
+    }
+  };
+
+  // Reset only internal state when sessions change (for uncontrolled mode)
   useEffect(() => {
-    setHighlightIndex(0);
-    setScrollOffset(0);
-  }, [sessions]);
+    if (!isControlled) {
+      setInternalIndex(0);
+      setScrollOffset(0);
+    }
+  }, [sessions, isControlled]);
+
+  // Adjust highlight index if it's out of bounds
+  useEffect(() => {
+    if (sessions.length > 0 && highlightIndex >= sessions.length) {
+      setHighlightIndex(sessions.length - 1);
+    }
+  }, [sessions.length, highlightIndex]);
 
   useEffect(() => {
     if (!onHighlight) return;

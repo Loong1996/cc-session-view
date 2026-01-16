@@ -55,6 +55,10 @@ export function App() {
   const [previewEnabled, setPreviewEnabled] = useState(true);
   const [highlightedSession, setHighlightedSession] = useState<SessionSummary | null>(null);
 
+  // Track highlight index per tab to preserve selection when navigating back
+  const [claudeHighlightIndex, setClaudeHighlightIndex] = useState(0);
+  const [codexHighlightIndex, setCodexHighlightIndex] = useState(0);
+
   useEffect(() => {
     async function loadSessions() {
       setLoading(true);
@@ -81,6 +85,12 @@ export function App() {
     [currentSessions, filterState]
   );
   const projects = useMemo(() => extractProjects(currentSessions), [currentSessions]);
+
+  // Reset highlight index when filter changes (for both tabs since filter applies to current view)
+  useEffect(() => {
+    setClaudeHighlightIndex(0);
+    setCodexHighlightIndex(0);
+  }, [filterState]);
 
   const layout = useLayout(previewEnabled, contentColumns);
   const { previewSession, loading: previewLoading } = usePreviewSession(highlightedSession);
@@ -301,6 +311,8 @@ export function App() {
                 onHighlight={setHighlightedSession}
                 isActive={filterMode === "none"}
                 width={layout.listWidth}
+                highlightIndex={activeTab === "claude-code" ? claudeHighlightIndex : codexHighlightIndex}
+                onHighlightIndexChange={activeTab === "claude-code" ? setClaudeHighlightIndex : setCodexHighlightIndex}
               />
             </Box>
 

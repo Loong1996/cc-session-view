@@ -37,32 +37,15 @@ export function exportToText(session: SessionDetail, options: ExportOptions): st
 export function exportToHtml(session: SessionDetail, options: ExportOptions): string {
   const filteredMessages = filterMessages(session.messages, options);
 
-  const messagesHtml = filteredMessages.map((msg, i) => {
-    const typeClass = msg.type.replace("_", "-");
-    const toolInfo = msg.toolName ? `<code class="tool-tag">${escapeHtml(msg.toolName)}</code>` : "";
-    const content = escapeHtml(msg.content);
-    const isLong = msg.content.length > 800;
-    const typeLabel = getMessageLabel(msg.type);
-    const typeAbbr = getMessageAbbr(msg.type);
+  // Group consecutive assistant messages
+  const messageGroups = groupConsecutiveAssistantMessages(filteredMessages);
 
-    return `
-      <article class="msg ${typeClass}" id="msg-${i}">
-        <div class="msg-indicator" title="${typeLabel}">
-          <span class="msg-abbr">${typeAbbr}</span>
-        </div>
-        <div class="msg-main">
-          <div class="msg-meta">
-            ${toolInfo}
-            ${isLong ? `<button class="expand-btn" onclick="toggleMsg(${i})" data-expanded="false">
-              <span class="expand-icon">▼</span>
-            </button>` : ""}
-          </div>
-          <div class="msg-text ${isLong ? "is-collapsed" : ""}">
-            <pre>${content}</pre>
-          </div>
-        </div>
-      </article>
-    `;
+  const messagesHtml = messageGroups.map((group) => {
+    if (group.type === 'single') {
+      return renderSingleMessage(group.message, group.index);
+    } else {
+      return renderConsecutiveAssistantGroup(group.messages, group.startIndex);
+    }
   }).join("\n");
 
   const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI";
@@ -457,6 +440,62 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       background: linear-gradient(to bottom, transparent, var(--thinking-bg));
     }
 
+    /* === HIDDEN MESSAGES GROUP === */
+    .hidden-messages-group {
+      margin: var(--space-sm) 0;
+      margin-left: 40px;
+    }
+
+    .show-hidden-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--peko-blue-soft);
+      border: 1px dashed var(--peko-blue);
+      border-radius: var(--radius-md);
+      color: var(--peko-blue);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .show-hidden-btn:hover {
+      background: var(--peko-blue);
+      color: white;
+      border-style: solid;
+    }
+
+    .hidden-icon {
+      font-size: 0.7rem;
+      transition: transform 0.2s ease;
+    }
+
+    .show-hidden-btn[data-expanded="true"] .hidden-icon {
+      transform: rotate(90deg);
+    }
+
+    .show-hidden-btn[data-expanded="true"] .hidden-count::before {
+      content: '';
+    }
+
+    .hidden-messages-container {
+      display: none;
+      margin-top: var(--space-sm);
+      padding-left: 0;
+      border-left: 2px dashed var(--peko-blue-soft);
+    }
+
+    .hidden-messages-container.is-visible {
+      display: block;
+    }
+
+    .hidden-messages-container .msg {
+      margin-left: -40px;
+    }
+
     /* === SCROLLBAR === */
     ::-webkit-scrollbar {
       width: 8px;
@@ -587,6 +626,7 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     function toggleMsg(index) {
       const text = document.querySelector('#msg-' + index + ' .msg-text');
       const btn = document.querySelector('#msg-' + index + ' .expand-btn');
+      if (!text || !btn) return;
       const isCollapsed = text.classList.contains('is-collapsed');
 
       if (isCollapsed) {
@@ -597,9 +637,209 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
         btn.setAttribute('data-expanded', 'false');
       }
     }
+
+    function toggleHiddenGroup(groupId) {
+      const group = document.getElementById(groupId);
+      if (!group) return;
+      const btn = group.querySelector('.show-hidden-btn');
+      const container = group.querySelector('.hidden-messages-container');
+      const countSpan = group.querySelector('.hidden-count');
+      if (!btn || !container || !countSpan) return;
+
+      const isExpanded = btn.getAttribute('data-expanded') === 'true';
+      const hiddenCount = container.querySelectorAll('.msg').length;
+
+      if (isExpanded) {
+        container.classList.remove('is-visible');
+        btn.setAttribute('data-expanded', 'false');
+        countSpan.textContent = hiddenCount + '件のメッセージを表示';
+      } else {
+        container.classList.add('is-visible');
+        btn.setAttribute('data-expanded', 'true');
+        countSpan.textContent = hiddenCount + '件のメッセージを非表示';
+      }
+    }
   </script>
 </body>
 </html>`;
+}
+
+type SingleMessageGroup = {
+  type: 'single';
+  message: Message;
+  index: number;
+};
+
+type ConsecutiveAssistantGroup = {
+  type: 'consecutive';
+  messages: Message[];
+  startIndex: number;
+};
+
+type MessageGroup = SingleMessageGroup | ConsecutiveAssistantGroup;
+
+function groupConsecutiveAssistantMessages(messages: Message[]): MessageGroup[] {
+  const groups: MessageGroup[] = [];
+  let i = 0;
+
+  while (i < messages.length) {
+    const msg = messages[i]!;
+
+    if (msg.type === 'assistant') {
+      // Count consecutive assistant messages
+      const consecutiveMessages: Message[] = [msg];
+      let j = i + 1;
+      while (j < messages.length && messages[j]!.type === 'assistant') {
+        consecutiveMessages.push(messages[j]!);
+        j++;
+      }
+
+      if (consecutiveMessages.length >= 4) {
+        // Group them together
+        groups.push({
+          type: 'consecutive',
+          messages: consecutiveMessages,
+          startIndex: i,
+        });
+      } else {
+        // Add them as individual messages
+        for (let k = 0; k < consecutiveMessages.length; k++) {
+          groups.push({
+            type: 'single',
+            message: consecutiveMessages[k]!,
+            index: i + k,
+          });
+        }
+      }
+      i = j;
+    } else {
+      groups.push({
+        type: 'single',
+        message: msg,
+        index: i,
+      });
+      i++;
+    }
+  }
+
+  return groups;
+}
+
+function renderSingleMessage(msg: Message, i: number): string {
+  const typeClass = msg.type.replace("_", "-");
+  const toolInfo = msg.toolName ? `<code class="tool-tag">${escapeHtml(msg.toolName)}</code>` : "";
+  const content = escapeHtml(msg.content);
+  const isLong = msg.content.length > 800;
+  const typeLabel = getMessageLabel(msg.type);
+  const typeAbbr = getMessageAbbr(msg.type);
+
+  return `
+    <article class="msg ${typeClass}" id="msg-${i}">
+      <div class="msg-indicator" title="${typeLabel}">
+        <span class="msg-abbr">${typeAbbr}</span>
+      </div>
+      <div class="msg-main">
+        <div class="msg-meta">
+          ${toolInfo}
+          ${isLong ? `<button class="expand-btn" onclick="toggleMsg(${i})" data-expanded="false">
+            <span class="expand-icon">▼</span>
+          </button>` : ""}
+        </div>
+        <div class="msg-text ${isLong ? "is-collapsed" : ""}">
+          <pre>${content}</pre>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number): string {
+  const groupId = `assistant-group-${startIndex}`;
+  const hiddenCount = messages.length - 2; // First and last are shown
+  const typeLabel = getMessageLabel('assistant');
+  const typeAbbr = getMessageAbbr('assistant');
+
+  // First message (always visible)
+  const firstMsg = messages[0]!;
+  const firstContent = escapeHtml(firstMsg.content);
+  const firstIsLong = firstMsg.content.length > 800;
+  const firstIndex = startIndex;
+
+  // Last message (always visible)
+  const lastMsg = messages[messages.length - 1]!;
+  const lastContent = escapeHtml(lastMsg.content);
+  const lastIsLong = lastMsg.content.length > 800;
+  const lastIndex = startIndex + messages.length - 1;
+
+  // Middle messages (hidden by default)
+  const middleMessages = messages.slice(1, -1);
+  const middleHtml = middleMessages.map((msg, idx) => {
+    const content = escapeHtml(msg.content);
+    const isLong = msg.content.length > 800;
+    const msgIndex = startIndex + 1 + idx;
+
+    return `
+      <article class="msg assistant hidden-msg" id="msg-${msgIndex}">
+        <div class="msg-indicator" title="${typeLabel}">
+          <span class="msg-abbr">${typeAbbr}</span>
+        </div>
+        <div class="msg-main">
+          <div class="msg-meta">
+            ${isLong ? `<button class="expand-btn" onclick="toggleMsg(${msgIndex})" data-expanded="false">
+              <span class="expand-icon">▼</span>
+            </button>` : ""}
+          </div>
+          <div class="msg-text ${isLong ? "is-collapsed" : ""}">
+            <pre>${content}</pre>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("\n");
+
+  return `
+    <article class="msg assistant" id="msg-${firstIndex}">
+      <div class="msg-indicator" title="${typeLabel}">
+        <span class="msg-abbr">${typeAbbr}</span>
+      </div>
+      <div class="msg-main">
+        <div class="msg-meta">
+          ${firstIsLong ? `<button class="expand-btn" onclick="toggleMsg(${firstIndex})" data-expanded="false">
+            <span class="expand-icon">▼</span>
+          </button>` : ""}
+        </div>
+        <div class="msg-text ${firstIsLong ? "is-collapsed" : ""}">
+          <pre>${firstContent}</pre>
+        </div>
+      </div>
+    </article>
+
+    <div class="hidden-messages-group" id="${groupId}">
+      <button class="show-hidden-btn" onclick="toggleHiddenGroup('${groupId}')" data-expanded="false">
+        <span class="hidden-icon">▶</span>
+        <span class="hidden-count">${hiddenCount}件のメッセージを表示</span>
+      </button>
+      <div class="hidden-messages-container">
+        ${middleHtml}
+      </div>
+    </div>
+
+    <article class="msg assistant" id="msg-${lastIndex}">
+      <div class="msg-indicator" title="${typeLabel}">
+        <span class="msg-abbr">${typeAbbr}</span>
+      </div>
+      <div class="msg-main">
+        <div class="msg-meta">
+          ${lastIsLong ? `<button class="expand-btn" onclick="toggleMsg(${lastIndex})" data-expanded="false">
+            <span class="expand-icon">▼</span>
+          </button>` : ""}
+        </div>
+        <div class="msg-text ${lastIsLong ? "is-collapsed" : ""}">
+          <pre>${lastContent}</pre>
+        </div>
+      </div>
+    </article>
+  `;
 }
 
 function filterMessages(messages: Message[], options: ExportOptions): Message[] {

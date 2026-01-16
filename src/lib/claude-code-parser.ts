@@ -43,7 +43,7 @@ async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionS
   let timestamp: Date | undefined;
   let cwd: string | undefined;
   let gitBranch: string | undefined;
-  let firstUserMessage: string | undefined;
+  const userMessages: string[] = [];
 
   for (const line of lines) {
     if (!line.trim()) continue;
@@ -64,12 +64,11 @@ async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionS
         gitBranch = record.gitBranch;
       }
 
-      // Find the first user message
-      if (record.type === "user" && !firstUserMessage) {
+      // Collect user messages
+      if (record.type === "user") {
         const content = extractMessageContent(record.message);
         if (content) {
-          firstUserMessage = content;
-          break; // Stop after finding the first user message
+          userMessages.push(content);
         }
       }
     } catch {
@@ -81,9 +80,13 @@ async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionS
     return null;
   }
 
+  // Select title: prefer messages not starting with "<", fallback to first message
+  const preferredMessage = userMessages.find((msg) => !msg.startsWith("<"));
+  const titleSource = preferredMessage ?? userMessages[0];
+
   // Generate title (40 chars, convert newlines to spaces)
-  const title = firstUserMessage
-    ? firstUserMessage.replace(/\n/g, " ").slice(0, 40)
+  const title = titleSource
+    ? titleSource.replace(/\n/g, " ").slice(0, 40)
     : "(No message)";
 
   return {

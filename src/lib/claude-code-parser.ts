@@ -12,7 +12,7 @@ export async function getClaudeCodeSessionsDir(): Promise<string> {
 /** Get summaries of all Claude Code sessions */
 export async function listClaudeCodeSessions(): Promise<SessionSummary[]> {
   const sessions: SessionSummary[] = []
-  const glob = new Bun.Glob("**/*.jsonl")
+  const glob = new Bun.Glob("*/*.jsonl")
 
   try {
     for await (const path of glob.scan({ cwd: CLAUDE_PROJECTS_DIR, absolute: true })) {

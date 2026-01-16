@@ -187,6 +187,92 @@ user (uuid: A, parentUuid: null)
 
 When `isSidechain: true`, it indicates a branched conversation flow.
 
+### Subagent Data Structure
+
+Claude Code can spawn subagents (child agents) to handle specific tasks. These subagents have their own session files stored in a dedicated directory.
+
+#### Directory Structure
+
+```
+~/.claude/projects/<project-path-encoded>/
+├── <session-uuid>.jsonl           # Main session file
+└── <session-uuid>/
+    └── subagents/
+        ├── agent-<agent-id>.jsonl # Subagent session file
+        ├── agent-<agent-id>.jsonl
+        └── ...
+```
+
+**Example:**
+
+```
+~/.claude/projects/-Users-username-projects-myapp/
+├── a9371efd-83f2-4781-96de-dfec40f1b4f2.jsonl
+└── a9371efd-83f2-4781-96de-dfec40f1b4f2/
+    └── subagents/
+        └── agent-a750744.jsonl
+```
+
+#### Subagent File Format
+
+Subagent files use the same JSONL format as main session files, with additional fields:
+
+```json
+{
+  "parentUuid": null,
+  "isSidechain": true,
+  "userType": "external",
+  "cwd": "/Users/username/projects/myapp",
+  "sessionId": "a9371efd-83f2-4781-96de-dfec40f1b4f2",
+  "version": "2.1.9",
+  "gitBranch": "main",
+  "agentId": "a750744",
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": "Task description for the subagent..."
+  },
+  "uuid": "e5cf7612-4d9b-41bb-8b5a-02ba61ffd62e",
+  "timestamp": "2026-01-16T07:18:14.317Z"
+}
+```
+
+#### Key Differences from Main Session
+
+| Field | Main Session | Subagent |
+|-------|-------------|----------|
+| `agentId` | Not present | Present (e.g., `"a750744"`) |
+| `isSidechain` | `false` (typically) | `true` |
+| `sessionId` | Own UUID | **Same as parent session** |
+| `model` | User-configured model | May differ (e.g., `claude-haiku-4-5-20251001`) |
+
+#### Important Notes
+
+1. **Shared sessionId**: Subagents share the same `sessionId` as their parent session. This is intentional for tracking purposes but can cause issues if not handled properly during session listing.
+
+2. **isSidechain flag**: Subagent messages always have `isSidechain: true`, indicating they are branched conversations.
+
+3. **agentId**: Each subagent has a unique `agentId` (short hash), which is also reflected in the filename (`agent-<agentId>.jsonl`).
+
+4. **Model flexibility**: Subagents may use different models than the parent session (e.g., using Haiku for faster, simpler tasks).
+
+#### Parsing Considerations
+
+When listing sessions, **exclude subagent files** to avoid duplicates:
+
+```typescript
+// Correct: Only match project-level .jsonl files
+const glob = new Bun.Glob("*/*.jsonl")
+
+// Incorrect: This includes subagent files and causes duplicates
+const glob = new Bun.Glob("**/*.jsonl")
+```
+
+To identify subagent files programmatically:
+- Check if the path contains `/subagents/`
+- Check for the presence of `agentId` field in records
+- Check if `isSidechain` is `true` for all records
+
 ---
 
 ## 2. Codex CLI

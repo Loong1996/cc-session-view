@@ -1,31 +1,31 @@
-// 共通の型定義
+// Common type definitions
 
 export type AgentType = "claude-code" | "codex";
 
-/** セッションのサマリー情報（一覧表示用） */
+/** Session summary information (for list display) */
 export interface SessionSummary {
   id: string;
   agentType: AgentType;
   filePath: string;
-  title: string; // 最初のユーザーメッセージの先頭40文字
+  title: string; // First 40 characters of the first user message
   timestamp: Date;
   cwd?: string;
   gitBranch?: string;
 }
 
-/** メッセージの種類 */
+/** Message types */
 export type MessageType = "user" | "assistant" | "tool_use" | "tool_result" | "thinking";
 
-/** 会話メッセージ */
+/** Conversation message */
 export interface Message {
   type: MessageType;
   content: string;
   timestamp?: Date;
-  toolName?: string; // tool_use の場合
-  toolId?: string; // tool_use/tool_result の場合
+  toolName?: string; // For tool_use
+  toolId?: string; // For tool_use/tool_result
 }
 
-/** セッションの詳細情報 */
+/** Session detail information */
 export interface SessionDetail {
   id: string;
   agentType: AgentType;
@@ -38,7 +38,7 @@ export interface SessionDetail {
   messages: Message[];
 }
 
-/** エクスポートオプション */
+/** Export options */
 export interface ExportOptions {
   includeUser: boolean;
   includeAssistant: boolean;

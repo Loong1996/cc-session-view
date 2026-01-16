@@ -1,5 +1,5 @@
 {
-  "name": "agent-session-print",
+  "name": "agent-session-view",
   "version": "0.1.0",
   "module": "src/index.tsx",
   "type": "module",

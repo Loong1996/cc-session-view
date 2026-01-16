@@ -1,73 +1,75 @@
-# Agent Session Print
+# Agent Session View
 
-Claude Code と Codex CLI のセッション履歴を閲覧・エクスポートするTUIツール。
+A TUI tool for browsing and exporting session history from Claude Code and Codex CLI.
 
-## 機能
+## Features
 
-- **セッション一覧表示**: Claude Code / Codex のセッションをタイムスタンプ順に一覧表示
-- **タブ切り替え**: TABキーで Claude Code と Codex を切り替え
-- **セッション詳細表示**: メタ情報（ID、日時、作業ディレクトリ、Gitブランチなど）と会話履歴を表示
-- **エクスポート機能**: プレーンテキストまたはHTML形式でエクスポート
+- **Session List**: Display Claude Code / Codex sessions sorted by timestamp
+- **Tab Switching**: Switch between Claude Code and Codex using TAB key
+- **Session Details**: View metadata (ID, date, working directory, Git branch, etc.) and conversation history
+- **Export**: Export to plain text or HTML format
 
-## セッションファイルの場所
+## Session File Locations
 
-| Agent | パス | ファイル形式 |
+| Agent | Path | File Format |
 |-------|------|-------------|
 | Claude Code | `~/.claude/projects/<project>/` | `*.jsonl` |
 | Codex CLI | `~/.codex/sessions/` | `rollout-*.jsonl`, `rollout-*.json` |
 
-## インストール
+## Installation
 
 ```bash
+git clone https://github.com/dotneet/agent-session-view.git
+cd agent-session-view
 bun install
 ```
 
-## 使い方
+## Usage
 
 ```bash
 bun run start
 ```
 
-### キーボード操作
+### Keyboard Controls
 
-| キー | 動作 |
-|------|------|
-| `↑` `↓` | セッション選択 |
-| `Enter` | セッション詳細を表示 |
-| `TAB` | Claude Code / Codex 切り替え |
-| `t` | テキスト形式でエクスポート |
-| `h` | HTML形式でエクスポート |
-| `q` / `ESC` | 戻る / 終了 |
+| Key | Action |
+|-----|--------|
+| `↑` `↓` | Select session |
+| `Enter` | View session details |
+| `TAB` | Switch between Claude Code / Codex |
+| `t` | Export as text |
+| `h` | Export as HTML |
+| `q` / `ESC` | Back / Exit |
 
-### エクスポート
+### Export
 
-エクスポートしたファイルは `./exported/` ディレクトリに保存されます。
+Exported files are saved to the `./exported/` directory.
 
-- **テキスト形式**: `session-<id>.txt`
-- **HTML形式**: `session-<id>.html` - CSSスタイル付き、長いメッセージは折りたたみ表示
+- **Text format**: `session-<id>.txt`
+- **HTML format**: `session-<id>.html` - Styled with CSS, long messages are collapsible
 
-#### エクスポートオプション（デフォルト）
+#### Export Options (Default)
 
-| オプション | デフォルト |
-|-----------|-----------|
-| user メッセージ | 有効 |
-| assistant メッセージ | 有効 |
-| ツール利用 | 無効 |
-| thinking | 無効 |
+| Option | Default |
+|--------|---------|
+| User messages | Enabled |
+| Assistant messages | Enabled |
+| Tool use | Disabled |
+| Thinking | Disabled |
 
-## 技術スタック
+## Tech Stack
 
 - TypeScript
 - Bun
 - [Ink](https://github.com/vadimdemedes/ink) - React for CLIs
 
-## 開発
+## Development
 
 ```bash
-# 開発モード（ファイル変更時に自動再起動）
+# Development mode (auto-restart on file changes)
 bun run dev
 ```
 
-## ライセンス
+## License
 
 MIT

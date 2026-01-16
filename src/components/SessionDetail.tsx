@@ -28,7 +28,7 @@ export function SessionDetail({ session, exportOptions, onChangeOptions, onBack,
 
   useInput((input, key) => {
     if (showOptions) {
-      // オプション設定モード
+      // Options settings mode
       if (key.escape || input === "o") {
         setShowOptions(false);
         return;
@@ -54,7 +54,7 @@ export function SessionDetail({ session, exportOptions, onChangeOptions, onBack,
       return;
     }
 
-    // 通常モード
+    // Normal mode
     if (key.escape || input === "q") {
       onBack();
     }
@@ -82,7 +82,7 @@ export function SessionDetail({ session, exportOptions, onChangeOptions, onBack,
 
   return (
     <Box flexDirection="column">
-      {/* メタ情報 */}
+      {/* Metadata */}
       <Box borderStyle="single" borderColor="gray" flexDirection="column" paddingX={1}>
         <Text bold color="cyan">Session Info</Text>
         <Text>
@@ -123,7 +123,7 @@ export function SessionDetail({ session, exportOptions, onChangeOptions, onBack,
         )}
       </Box>
 
-      {/* オプション設定パネル */}
+      {/* Options settings panel */}
       {showOptions && (
         <Box borderStyle="round" borderColor="yellow" flexDirection="column" paddingX={1} marginY={1}>
           <Text bold color="yellow">Export Options</Text>
@@ -140,12 +140,12 @@ export function SessionDetail({ session, exportOptions, onChangeOptions, onBack,
         </Box>
       )}
 
-      {/* 操作説明 */}
+      {/* Help text */}
       <Box marginY={1}>
         <Text dimColor>[q/ESC] Back  [o] Options  [t] Text  [h] HTML  [v] View</Text>
       </Box>
 
-      {/* 会話履歴 */}
+      {/* Conversation history */}
       <Box flexDirection="column" marginTop={1}>
         <Text bold color="cyan">Messages ({filteredMessages.length}/{session.messages.length})</Text>
         {filteredMessages.slice(0, 20).map((msg, i) => (
@@ -187,7 +187,7 @@ function MessageItem({ message }: MessageItemProps) {
   const color = roleColors[message.type] || "white";
   const label = roleLabels[message.type] || message.type.toUpperCase();
 
-  // コンテンツを短縮表示
+  // Truncate content for display
   const shortContent = message.content
     .replace(/\n/g, " ")
     .slice(0, 80);

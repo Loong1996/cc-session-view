@@ -28,7 +28,7 @@ export function App() {
   const [exportOptions, setExportOptions] = useState<ExportOptions>(defaultExportOptions);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  // セッション一覧を読み込み
+  // Load session list
   useEffect(() => {
     async function loadSessions() {
       setLoading(true);
@@ -49,23 +49,23 @@ export function App() {
     loadSessions();
   }, []);
 
-  // キー入力ハンドリング
+  // Handle key input
   useInput((input, key) => {
-    // 詳細画面では別途ハンドリング
+    // Detail view has its own input handling
     if (viewMode === "detail") return;
 
-    // TAB でタブ切り替え
+    // TAB to switch tabs
     if (key.tab) {
       setActiveTab((prev) => (prev === "claude-code" ? "codex" : "claude-code"));
     }
 
-    // q または Ctrl+C で終了
+    // q or Ctrl+C to exit
     if (input === "q" || (key.ctrl && input === "c")) {
       exit();
     }
   });
 
-  // セッション選択ハンドラ
+  // Handle session selection
   async function handleSelectSession(summary: SessionSummary) {
     setLoading(true);
     try {
@@ -87,13 +87,13 @@ export function App() {
     }
   }
 
-  // 詳細画面から戻る
+  // Return from detail view
   function handleBack() {
     setViewMode("list");
     setSelectedSession(null);
   }
 
-  // エクスポートハンドラ
+  // Handle export
   async function handleExport(format: "text" | "html") {
     if (!selectedSession) return;
 
@@ -109,7 +109,7 @@ export function App() {
     const filepath = `${exportDir}/${filename}`;
 
     try {
-      // exportedディレクトリが存在しない場合は作成
+      // Create exported directory if it doesn't exist
       const fs = await import("node:fs/promises");
       await fs.mkdir(exportDir, { recursive: true });
 
@@ -121,7 +121,7 @@ export function App() {
     }
   }
 
-  // ブラウザで表示するハンドラ
+  // Handle viewing in browser
   async function handleViewInBrowser() {
     if (!selectedSession) return;
 
@@ -133,7 +133,7 @@ export function App() {
 
     try {
       await Bun.write(filepath, content);
-      // open コマンドでブラウザを起動
+      // Open browser with open command
       const proc = Bun.spawn(["open", filepath]);
       await proc.exited;
       setStatusMessage(`Opened in browser: ${filepath}`);
@@ -147,37 +147,37 @@ export function App() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      {/* ヘッダー */}
+      {/* Header */}
       <Box marginBottom={1}>
         <Text bold color="cyan">Agent Session Print</Text>
         <Text dimColor> - View Claude Code &amp; Codex sessions</Text>
       </Box>
 
-      {/* エラー表示 */}
+      {/* Error display */}
       {error && (
         <Box marginBottom={1}>
           <Text color="red">Error: {error}</Text>
         </Box>
       )}
 
-      {/* ステータスメッセージ */}
+      {/* Status message */}
       {statusMessage && (
         <Box marginBottom={1}>
           <Text color="green">{statusMessage}</Text>
         </Box>
       )}
 
-      {/* メインコンテンツ */}
+      {/* Main content */}
       {loading ? (
         <Box>
           <Text dimColor>Loading...</Text>
         </Box>
       ) : viewMode === "list" ? (
         <>
-          {/* タブセレクター */}
+          {/* Tab selector */}
           <TabSelector activeTab={activeTab} onTabChange={setActiveTab} />
 
-          {/* セッション一覧 */}
+          {/* Session list */}
           <Box marginTop={1} flexDirection="column">
             <Text dimColor>
               {currentSessions.length} sessions found
@@ -189,7 +189,7 @@ export function App() {
             />
           </Box>
 
-          {/* 操作説明 */}
+          {/* Help text */}
           <Box marginTop={1}>
             <Text dimColor>[↑↓] Navigate  [Enter] Select  [TAB] Switch tab  [q] Quit</Text>
           </Box>

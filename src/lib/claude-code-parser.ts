@@ -4,12 +4,12 @@ import type { SessionSummary, SessionDetail, Message, MessageType } from "./type
 
 const CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 
-/** Claude Code セッションディレクトリを取得 */
+/** Get Claude Code sessions directory */
 export async function getClaudeCodeSessionsDir(): Promise<string> {
   return CLAUDE_PROJECTS_DIR;
 }
 
-/** すべての Claude Code セッションのサマリーを取得 */
+/** Get summaries of all Claude Code sessions */
 export async function listClaudeCodeSessions(): Promise<SessionSummary[]> {
   const sessions: SessionSummary[] = [];
   const glob = new Bun.Glob("**/*.jsonl");
@@ -22,18 +22,18 @@ export async function listClaudeCodeSessions(): Promise<SessionSummary[]> {
           sessions.push(summary);
         }
       } catch {
-        // パースエラーは無視
+        // Ignore parse errors
       }
     }
   } catch {
-    // ディレクトリが存在しない場合など
+    // Directory doesn't exist, etc.
   }
 
-  // タイムスタンプで降順ソート
+  // Sort by timestamp descending
   return sessions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 }
 
-/** Claude Code セッションファイルからサマリー情報を抽出 */
+/** Extract summary information from Claude Code session file */
 async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionSummary | null> {
   const file = Bun.file(filePath);
   const text = await file.text();
@@ -50,7 +50,7 @@ async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionS
     try {
       const record = JSON.parse(line);
 
-      // セッションIDとメタデータを取得
+      // Get session ID and metadata
       if (record.sessionId && !sessionId) {
         sessionId = record.sessionId;
       }
@@ -64,16 +64,16 @@ async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionS
         gitBranch = record.gitBranch;
       }
 
-      // 最初のユーザーメッセージを探す
+      // Find the first user message
       if (record.type === "user" && !firstUserMessage) {
         const content = extractMessageContent(record.message);
         if (content) {
           firstUserMessage = content;
-          break; // 最初のユーザーメッセージを見つけたら終了
+          break; // Stop after finding the first user message
         }
       }
     } catch {
-      // JSON パースエラーは無視
+      // Ignore JSON parse errors
     }
   }
 
@@ -81,7 +81,7 @@ async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionS
     return null;
   }
 
-  // タイトルを生成（40文字、改行をスペースに変換）
+  // Generate title (40 chars, convert newlines to spaces)
   const title = firstUserMessage
     ? firstUserMessage.replace(/\n/g, " ").slice(0, 40)
     : "(No message)";
@@ -97,7 +97,7 @@ async function parseClaudeCodeSessionSummary(filePath: string): Promise<SessionS
   };
 }
 
-/** Claude Code セッションの詳細を取得 */
+/** Get Claude Code session details */
 export async function loadClaudeCodeSession(filePath: string): Promise<SessionDetail | null> {
   const file = Bun.file(filePath);
   const text = await file.text();
@@ -116,7 +116,7 @@ export async function loadClaudeCodeSession(filePath: string): Promise<SessionDe
     try {
       const record = JSON.parse(line);
 
-      // メタデータを取得
+      // Get metadata
       if (record.sessionId && !sessionId) {
         sessionId = record.sessionId;
       }
@@ -133,7 +133,7 @@ export async function loadClaudeCodeSession(filePath: string): Promise<SessionDe
         version = record.version;
       }
 
-      // メッセージを処理
+      // Process messages
       if (record.type === "user") {
         const userMessages = extractUserMessages(record);
         messages.push(...userMessages);
@@ -145,7 +145,7 @@ export async function loadClaudeCodeSession(filePath: string): Promise<SessionDe
         messages.push(...assistantMessages);
       }
     } catch {
-      // JSON パースエラーは無視
+      // Ignore JSON parse errors
     }
   }
 
@@ -166,17 +166,17 @@ export async function loadClaudeCodeSession(filePath: string): Promise<SessionDe
   };
 }
 
-/** メッセージコンテンツを抽出 */
+/** Extract message content */
 function extractMessageContent(message: unknown): string | null {
   if (!message || typeof message !== "object") return null;
   const msg = message as Record<string, unknown>;
 
-  // content が文字列の場合
+  // If content is a string
   if (typeof msg.content === "string") {
     return msg.content;
   }
 
-  // content が配列の場合（content blocks）
+  // If content is an array (content blocks)
   if (Array.isArray(msg.content)) {
     for (const block of msg.content) {
       if (block.type === "text" && typeof block.text === "string") {
@@ -191,7 +191,7 @@ function extractMessageContent(message: unknown): string | null {
   return null;
 }
 
-/** user レコードからメッセージを抽出 */
+/** Extract messages from user record */
 function extractUserMessages(record: Record<string, unknown>): Message[] {
   const messages: Message[] = [];
   const ts = record.timestamp ? new Date(record.timestamp as string) : undefined;
@@ -199,7 +199,7 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
   if (!record.message || typeof record.message !== "object") return messages;
   const msg = record.message as Record<string, unknown>;
 
-  // content が文字列の場合
+  // If content is a string
   if (typeof msg.content === "string") {
     messages.push({
       type: "user",
@@ -209,7 +209,7 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
     return messages;
   }
 
-  // content が配列の場合
+  // If content is an array
   if (Array.isArray(msg.content)) {
     for (const block of msg.content) {
       if (block.type === "text" && typeof block.text === "string") {
@@ -224,7 +224,7 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
           : JSON.stringify(block.content);
         messages.push({
           type: "tool_result",
-          content: content.slice(0, 500), // 長すぎる結果は切り詰め
+          content: content.slice(0, 500), // Truncate long results
           toolId: block.tool_use_id,
           timestamp: ts,
         });
@@ -235,7 +235,7 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
   return messages;
 }
 
-/** assistant レコードからメッセージを抽出 */
+/** Extract messages from assistant record */
 function extractAssistantMessages(record: Record<string, unknown>): Message[] {
   const messages: Message[] = [];
   const ts = record.timestamp ? new Date(record.timestamp as string) : undefined;

@@ -4,22 +4,22 @@ import type { SessionSummary, SessionDetail, Message } from "./types";
 
 const CODEX_SESSIONS_DIR = join(homedir(), ".codex", "sessions");
 
-/** Codex セッションディレクトリを取得 */
+/** Get Codex sessions directory */
 export async function getCodexSessionsDir(): Promise<string> {
   return CODEX_SESSIONS_DIR;
 }
 
-/** すべての Codex セッションのサマリーを取得 */
+/** Get summaries of all Codex sessions */
 export async function listCodexSessions(): Promise<SessionSummary[]> {
   const sessions: SessionSummary[] = [];
 
-  // 新形式 (JSONL): YYYY/MM/DD/rollout-*.jsonl
+  // New format (JSONL): YYYY/MM/DD/rollout-*.jsonl
   const jsonlGlob = new Bun.Glob("**/rollout-*.jsonl");
-  // 旧形式 (JSON): rollout-*.json
+  // Old format (JSON): rollout-*.json
   const jsonGlob = new Bun.Glob("rollout-*.json");
 
   try {
-    // 新形式のセッション
+    // New format sessions
     for await (const path of jsonlGlob.scan({ cwd: CODEX_SESSIONS_DIR, absolute: true })) {
       try {
         const summary = await parseCodexJsonlSessionSummary(path);
@@ -27,11 +27,11 @@ export async function listCodexSessions(): Promise<SessionSummary[]> {
           sessions.push(summary);
         }
       } catch {
-        // パースエラーは無視
+        // Ignore parse errors
       }
     }
 
-    // 旧形式のセッション
+    // Old format sessions
     for await (const path of jsonGlob.scan({ cwd: CODEX_SESSIONS_DIR, absolute: true })) {
       try {
         const summary = await parseCodexJsonSessionSummary(path);
@@ -39,18 +39,18 @@ export async function listCodexSessions(): Promise<SessionSummary[]> {
           sessions.push(summary);
         }
       } catch {
-        // パースエラーは無視
+        // Ignore parse errors
       }
     }
   } catch {
-    // ディレクトリが存在しない場合など
+    // Directory doesn't exist, etc.
   }
 
-  // タイムスタンプで降順ソート
+  // Sort by timestamp descending
   return sessions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 }
 
-/** Codex JSONL セッションファイルからサマリー情報を抽出 */
+/** Extract summary information from Codex JSONL session file */
 async function parseCodexJsonlSessionSummary(filePath: string): Promise<SessionSummary | null> {
   const file = Bun.file(filePath);
   const text = await file.text();
@@ -67,7 +67,7 @@ async function parseCodexJsonlSessionSummary(filePath: string): Promise<SessionS
     try {
       const record = JSON.parse(line);
 
-      // session_meta からメタデータを取得
+      // Get metadata from session_meta
       if (record.type === "session_meta" && record.payload) {
         sessionId = record.payload.id;
         timestamp = new Date(record.payload.timestamp || record.timestamp);
@@ -77,7 +77,7 @@ async function parseCodexJsonlSessionSummary(filePath: string): Promise<SessionS
         }
       }
 
-      // 最初のユーザーメッセージを探す（タイトル用にスキップすべきものは除外）
+      // Find the first user message (skip messages that shouldn't be used for title)
       if (record.type === "response_item" && record.payload?.role === "user" && !firstUserMessage) {
         const content = extractCodexMessageContent(record.payload);
         if (content && !shouldSkipForTitle(content)) {
@@ -85,7 +85,7 @@ async function parseCodexJsonlSessionSummary(filePath: string): Promise<SessionS
         }
       }
 
-      // event_msg からもユーザーメッセージを取得
+      // Also get user messages from event_msg
       if (record.type === "event_msg" && record.payload?.type === "user_message" && !firstUserMessage) {
         const msg = record.payload.message;
         if (msg && !shouldSkipForTitle(msg)) {
@@ -93,7 +93,7 @@ async function parseCodexJsonlSessionSummary(filePath: string): Promise<SessionS
         }
       }
     } catch {
-      // JSON パースエラーは無視
+      // Ignore JSON parse errors
     }
   }
 
@@ -116,7 +116,7 @@ async function parseCodexJsonlSessionSummary(filePath: string): Promise<SessionS
   };
 }
 
-/** Codex JSON セッションファイルからサマリー情報を抽出（旧形式） */
+/** Extract summary information from Codex JSON session file (old format) */
 async function parseCodexJsonSessionSummary(filePath: string): Promise<SessionSummary | null> {
   const file = Bun.file(filePath);
   const text = await file.text();
@@ -153,19 +153,19 @@ async function parseCodexJsonSessionSummary(filePath: string): Promise<SessionSu
   };
 }
 
-/** Codex セッションの詳細を取得 */
+/** Get Codex session details */
 export async function loadCodexSession(filePath: string): Promise<SessionDetail | null> {
   const file = Bun.file(filePath);
   const text = await file.text();
 
-  // ファイル拡張子で形式を判断
+  // Determine format by file extension
   if (filePath.endsWith(".jsonl")) {
     return parseCodexJsonlSessionDetail(filePath, text);
   }
   return parseCodexJsonSessionDetail(filePath, text);
 }
 
-/** JSONL形式のセッション詳細をパース */
+/** Parse JSONL format session details */
 function parseCodexJsonlSessionDetail(filePath: string, text: string): SessionDetail | null {
   const lines = text.trim().split("\n");
 
@@ -182,7 +182,7 @@ function parseCodexJsonlSessionDetail(filePath: string, text: string): SessionDe
     try {
       const record = JSON.parse(line);
 
-      // session_meta からメタデータを取得
+      // Get metadata from session_meta
       if (record.type === "session_meta" && record.payload) {
         sessionId = record.payload.id;
         timestamp = new Date(record.payload.timestamp || record.timestamp);
@@ -193,12 +193,12 @@ function parseCodexJsonlSessionDetail(filePath: string, text: string): SessionDe
         }
       }
 
-      // turn_context から最初のモデル情報を取得
+      // Get first model info from turn_context
       if (record.type === "turn_context" && record.payload?.model && !model) {
         model = record.payload.model;
       }
 
-      // response_item からメッセージを取得
+      // Get messages from response_item
       if (record.type === "response_item" && record.payload) {
         const payload = record.payload;
         const ts = record.timestamp ? new Date(record.timestamp) : undefined;
@@ -231,7 +231,7 @@ function parseCodexJsonlSessionDetail(filePath: string, text: string): SessionDe
         }
       }
     } catch {
-      // JSON パースエラーは無視
+      // Ignore JSON parse errors
     }
   }
 
@@ -252,7 +252,7 @@ function parseCodexJsonlSessionDetail(filePath: string, text: string): SessionDe
   };
 }
 
-/** JSON形式のセッション詳細をパース（旧形式） */
+/** Parse JSON format session details (old format) */
 function parseCodexJsonSessionDetail(filePath: string, text: string): SessionDetail | null {
   const data = JSON.parse(text);
 
@@ -270,7 +270,7 @@ function parseCodexJsonSessionDetail(filePath: string, text: string): SessionDet
           messages.push({ type: "user", content });
         }
       } else if (item.type === "reasoning") {
-        // reasoning は thinking として扱う
+        // Treat reasoning as thinking
         if (Array.isArray(item.summary) && item.summary.length > 0) {
           messages.push({
             type: "thinking",
@@ -315,7 +315,7 @@ function parseCodexJsonSessionDetail(filePath: string, text: string): SessionDet
   };
 }
 
-/** Codex メッセージからコンテンツを抽出 */
+/** Extract content from Codex message */
 function extractCodexMessageContent(message: Record<string, unknown>): string | null {
   if (Array.isArray(message.content)) {
     for (const block of message.content) {
@@ -337,7 +337,7 @@ function extractCodexMessageContent(message: Record<string, unknown>): string | 
   return null;
 }
 
-/** タイトルに使用すべきでないメッセージかどうかを判定 */
+/** Determine if message should not be used for title */
 function shouldSkipForTitle(content: string): boolean {
   const trimmed = content.trim();
   return trimmed.startsWith("# AGENTS.md") || trimmed.startsWith("<environment_context>");

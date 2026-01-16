@@ -1,10 +1,10 @@
 import type { SessionDetail, ExportOptions, Message } from "./types";
 
-/** プレーンテキスト形式でエクスポート */
+/** Export to plain text format */
 export function exportToText(session: SessionDetail, options: ExportOptions): string {
   const lines: string[] = [];
 
-  // ヘッダー
+  // Header
   lines.push("=".repeat(60));
   lines.push(`Session: ${session.id}`);
   lines.push(`Type: ${session.agentType}`);
@@ -16,7 +16,7 @@ export function exportToText(session: SessionDetail, options: ExportOptions): st
   lines.push("=".repeat(60));
   lines.push("");
 
-  // メッセージ
+  // Messages
   const filteredMessages = filterMessages(session.messages, options);
   for (const msg of filteredMessages) {
     const label = getMessageLabel(msg.type);
@@ -33,7 +33,7 @@ export function exportToText(session: SessionDetail, options: ExportOptions): st
   return lines.join("\n");
 }
 
-/** HTML形式でエクスポート */
+/** Export to HTML format */
 export function exportToHtml(session: SessionDetail, options: ExportOptions): string {
   const filteredMessages = filterMessages(session.messages, options);
 
@@ -68,7 +68,7 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
   const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI";
 
   return `<!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">

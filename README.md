@@ -14,13 +14,6 @@ A Terminal User Interface (TUI) tool for browsing, viewing, and exporting conver
   - **Styled HTML**: Beautiful HTML export with color-coded messages, collapsible long content, responsive design, and print-friendly styles
 - **Browser Preview**: Instantly open HTML exports in your default browser for quick review
 
-## Session File Locations
-
-| Agent | Path | File Format |
-|-------|------|-------------|
-| Claude Code | `~/.claude/projects/<project>/` | `*.jsonl` |
-| Codex CLI | `~/.codex/sessions/` | `rollout-*.jsonl`, `rollout-*.json` |
-
 ## Installation
 
 ```bash
@@ -29,22 +22,11 @@ cd agent-session-view
 bun install
 ```
 
-### Global Installation (Optional)
-
-To use the `asp` command globally:
-
-```bash
-bun link
-```
-
 ## Usage
 
 ```bash
 # Run directly
 bun run start
-
-# Or use the command (after bun link)
-asp
 
 # Development mode (auto-restart on file changes)
 bun run dev
@@ -118,13 +100,6 @@ Exported files are saved to the `./exported/` directory with the naming pattern:
 - Function calls (with arguments)
 - Function call outputs
 - Reasoning blocks
-
-## Tech Stack
-
-- **Runtime**: [Bun](https://bun.sh)
-- **Language**: TypeScript
-- **UI Framework**: [Ink](https://github.com/vadimdemedes/ink) (React for CLIs)
-- **Components**: [ink-select-input](https://github.com/vadimdemedes/ink-select-input)
 
 ## License
 

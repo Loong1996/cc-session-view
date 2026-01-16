@@ -46,7 +46,7 @@ export function ProjectFilterMenu({
     }
     if (key.return) {
       const selected = items[index]
-      onSelect(selected.path === "__all__" ? null : selected.path)
+      if (selected) onSelect(selected.path === "__all__" ? null : selected.path)
     }
   })
 

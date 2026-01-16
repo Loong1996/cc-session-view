@@ -24,6 +24,8 @@ bun install
 
 ## Usage
 
+### TUI Mode (Terminal)
+
 ```bash
 # Run directly
 bun run start
@@ -32,7 +34,40 @@ bun run start
 bun run dev
 ```
 
-## Keyboard Controls
+### Web Mode (Browser)
+
+```bash
+# Start web server
+bun run web
+
+# Development mode (with hot module replacement)
+bun run web:dev
+```
+
+Access http://localhost:3456 in your browser.
+
+## Web Interface Features
+
+The web interface provides a modern browser-based experience for viewing sessions:
+
+- **Session List**: Browse sessions with real-time search and filtering
+- **Search**: Filter sessions by keyword
+- **Date Filter**: Filter by today, yesterday, this week, last week, this month, or all time
+- **Project Filter**: Filter sessions by working directory
+- **Session Detail View**: View full conversation history with syntax highlighting
+- **Export**: Download sessions as HTML or plain text directly from the browser
+- **Hot Module Replacement**: Development mode supports HMR for rapid iteration
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/sessions` | GET | List sessions with optional filters |
+| `/api/sessions/:agentType/:sessionId` | GET | Get session detail |
+| `/api/projects` | GET | List projects (working directories) |
+| `/api/export` | POST | Export session to HTML/text |
+
+## TUI Keyboard Controls
 
 ### List View
 
@@ -100,6 +135,10 @@ Exported files are saved to the `./exported/` directory with the naming pattern:
 - Function calls (with arguments)
 - Function call outputs
 - Reasoning blocks
+
+## Development
+
+See [DEVELOPER.md](./DEVELOPER.md) for detailed setup instructions and development guide.
 
 ## License
 

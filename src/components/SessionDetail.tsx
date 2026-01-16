@@ -146,11 +146,11 @@ export function SessionDetail({
       }))
       return
     }
-    if (input === "g" || key.home) {
+    if (input === "g" || (key as unknown as { home?: boolean }).home) {
       setPagination((prev) => ({ ...prev, scrollOffset: 0 }))
       return
     }
-    if (input === "G" || key.end) {
+    if (input === "G" || (key as unknown as { end?: boolean }).end) {
       setPagination((prev) => ({ ...prev, scrollOffset: maxOffset }))
       return
     }

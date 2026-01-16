@@ -23,18 +23,17 @@ export function MessageRenderer({ messages }: MessageRendererProps) {
 
   return (
     <div>
-      {groups.map((group, groupIndex) => {
+      {groups.map((group) => {
         if (group.type === "single") {
-          return <SingleMessage key={groupIndex} message={group.messages[0]!} />
-        } else {
-          return (
-            <ConsecutiveAssistantGroup
-              key={groupIndex}
-              messages={group.messages}
-              startIndex={group.startIndex}
-            />
-          )
+          return <SingleMessage key={`msg-${group.startIndex}`} message={group.messages[0]!} />
         }
+        return (
+          <ConsecutiveAssistantGroup
+            key={`group-${group.startIndex}`}
+            messages={group.messages}
+            startIndex={group.startIndex}
+          />
+        )
       })}
     </div>
   )
@@ -104,7 +103,7 @@ function ConsecutiveAssistantGroup({
         </button>
         <div className={`hidden-messages-container ${showHidden ? "visible" : ""}`}>
           {middleMessages.map((msg, idx) => (
-            <SingleMessage key={startIndex + 1 + idx} message={msg} />
+            <SingleMessage key={`hidden-${startIndex + 1 + idx}`} message={msg} />
           ))}
         </div>
       </div>

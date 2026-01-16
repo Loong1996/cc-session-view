@@ -48,11 +48,12 @@ export function SessionList({
   }, [isControlled])
 
   // Adjust highlight index if it's out of bounds
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setHighlightIndex is stable
   useEffect(() => {
     if (sessions.length > 0 && highlightIndex >= sessions.length) {
       setHighlightIndex(sessions.length - 1)
     }
-  }, [sessions.length, highlightIndex, setHighlightIndex])
+  }, [sessions.length, highlightIndex])
 
   useEffect(() => {
     if (!onHighlight) return
@@ -90,11 +91,11 @@ export function SessionList({
       setHighlightIndex((prev) => Math.min(maxIndex, prev + PAGE_SIZE))
       return
     }
-    if (key.home || input === "g") {
+    if ((key as unknown as { home?: boolean }).home || input === "g") {
       setHighlightIndex(0)
       return
     }
-    if (key.end || input === "G") {
+    if ((key as unknown as { end?: boolean }).end || input === "G") {
       setHighlightIndex(maxIndex)
       return
     }

@@ -12,7 +12,7 @@ type DateFilter = "today" | "yesterday" | "this-week" | "last-week" | "this-mont
 
 interface SessionSummary {
   id: string
-  agentType: AgentType
+  agentType: string
   filePath: string
   title: string
   timestamp: string
@@ -22,7 +22,7 @@ interface SessionSummary {
 
 interface SessionDetail {
   id: string
-  agentType: AgentType
+  agentType: string
   filePath: string
   timestamp: string
   cwd?: string

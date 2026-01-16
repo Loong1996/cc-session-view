@@ -85,7 +85,7 @@ export function SessionDetailView({ session, loading, onExport }: SessionDetailV
             <input
               type="checkbox"
               checked={showToolMessages}
-              onChange={(e) => setShowToolMessages(e.target.checked)}
+              onChange={(e) => setShowToolMessages((e.target as HTMLInputElement).checked)}
             />
             <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>
               ツール呼び出しを表示

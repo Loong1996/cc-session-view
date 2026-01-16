@@ -56,9 +56,9 @@ export function SessionPreview({ session, summary, loading, width }: SessionPrev
             </Text>
           )}
         </Box>
-        <Text dimColor marginTop={1}>
-          Loading messages...
-        </Text>
+        <Box marginTop={1}>
+          <Text dimColor>Loading messages...</Text>
+        </Box>
       </Box>
     )
   }
@@ -104,7 +104,7 @@ export function SessionPreview({ session, summary, loading, width }: SessionPrev
       <Box marginTop={1} flexDirection="column">
         <Text dimColor>{"-".repeat(Math.max(0, width - 4))}</Text>
         {previewMessages.map((message, i) => (
-          <PreviewMessageItem key={i} message={message} maxWidth={width - 4} />
+          <PreviewMessageItem key={`${message.type}-${i}`} message={message} maxWidth={width - 4} />
         ))}
         {session.messages.length > 5 && (
           <Text dimColor>... ({session.messages.length - 5} more messages)</Text>

@@ -31,13 +31,13 @@ export function SearchFilterBar({
         className="search-input"
         placeholder="セッションを検索..."
         value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
+        onChange={(e) => onSearchChange((e.target as HTMLInputElement).value)}
       />
       <div className="filter-row">
         <select
           className="filter-select"
           value={dateFilter}
-          onChange={(e) => onDateFilterChange(e.target.value as DateFilter)}
+          onChange={(e) => onDateFilterChange((e.target as HTMLSelectElement).value as DateFilter)}
         >
           <option value="all">すべての期間</option>
           <option value="today">今日</option>
@@ -49,7 +49,7 @@ export function SearchFilterBar({
         <select
           className="filter-select"
           value={projectFilter || ""}
-          onChange={(e) => onProjectFilterChange(e.target.value || null)}
+          onChange={(e) => onProjectFilterChange((e.target as HTMLSelectElement).value || null)}
         >
           <option value="">すべてのプロジェクト</option>
           {projects.map((project) => (

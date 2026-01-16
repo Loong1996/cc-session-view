@@ -49,7 +49,8 @@ export function DateFilterMenu({
       return
     }
     if (key.return) {
-      onSelect(options[index].value)
+      const opt = options[index]
+      if (opt) onSelect(opt.value)
     }
   })
 

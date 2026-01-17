@@ -1,111 +1,80 @@
----
-description: Use Bun instead of Node.js, npm, pnpm, or vite.
-globs: "*.ts, *.tsx, *.html, *.css, *.js, *.jsx, package.json"
-alwaysApply: false
----
+# CLAUDE.md
 
-Default to using Bun instead of Node.js.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
-- Bun automatically loads .env, so don't use dotenv.
+## Project Overview
 
-## APIs
+Agent Session View is a dual-interface application for browsing conversation history from Claude Code and Codex CLI. It provides both a Terminal UI (TUI) and a web interface.
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+## Commands
+
+```bash
+# Development
+bun run dev          # TUI with auto-restart
+bun run web:dev      # Web server with HMR (http://localhost:3456)
+
+# Production
+bun run start        # TUI mode
+bun run web          # Web server mode
+
+# Testing
+bun test             # Run all tests
+bun test --watch     # Watch mode
+bun test src/lib/filter.test.ts  # Run single test file
+
+# Code Quality
+bun run check:fix    # Fix lint + format issues (recommended)
+bun run lint:fix     # Auto-fix lint warnings only
+```
+
+## Architecture
+
+### Dual-Mode Design
+
+The application runs in two modes, switched via the `web` subcommand in [index.tsx](src/index.tsx):
+
+1. **TUI Mode**: React + Ink renders to terminal. Main component in [App.tsx](src/App.tsx)
+2. **Web Mode**: Bun.serve HTTP server in [server.ts](src/server.ts) with React frontend in [web/frontend.tsx](src/web/frontend.tsx)
+
+### Session Data Flow
+
+```
+Session Files (JSONL)          Parsers                    UI
+~/.claude/projects/*/sessions/  →  claude-code-parser.ts  →  SessionList/SessionDetail
+~/.codex/sessions/              →  codex-parser.ts        →  (TUI or Web components)
+```
+
+**Key difference in session formats:**
+- Claude Code: Nested content blocks with tool use and thinking blocks
+- Codex CLI: Flat message structure with function calls
+
+### Core Libraries ([src/lib/](src/lib/))
+
+- **types.ts**: SessionSummary, SessionDetail, Message types
+- **claude-code-parser.ts / codex-parser.ts**: Parse JSONL session files
+- **filter.ts**: Search, date filtering, project filtering logic
+- **exporter.ts**: Export to HTML/text with styling
+
+### Component Structure
+
+TUI components ([src/components/](src/components/)) use Ink, web components ([src/web/components/](src/web/components/)) use React DOM. They share similar structure but are separate implementations.
+
+## Code Style
+
+Enforced by Biome (pre-commit hooks auto-fix):
+- 2 spaces, double quotes, no semicolons
+- Line width: 100 characters
 
 ## Testing
 
-Use `bun test` to run tests.
+Tests use Bun's built-in test runner:
 
-```ts#index.test.ts
-import { test, expect } from "bun:test";
-
-test("hello world", () => {
-  expect(1).toBe(1);
-});
+```typescript
+import { describe, expect, test } from "bun:test"
 ```
 
-## Frontend
+## Tech Constraints
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
-
-Server:
-
-```ts#index.ts
-import index from "./index.html"
-
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
-```
-
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
-
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
-
-With the following `frontend.tsx`:
-
-```tsx#frontend.tsx
-import React from "react";
-import { createRoot } from "react-dom/client";
-
-// import .css files directly and it works
-import './index.css';
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+- **Use Bun APIs**: Bun.serve, Bun.file, Bun.Glob (not Express, fs, etc.)
+- **TUI components must use Ink**: All text in `<Text>`, layouts with `<Box>`
+- **No external build tools**: Bun handles bundling, transpilation, HMR

@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AI Agent Guidance
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI Agent when working with code in this repository.
 
 ## Project Overview
 
@@ -64,6 +64,12 @@ TUI components ([src/components/](src/components/)) use Ink, web components ([sr
 Enforced by Biome (pre-commit hooks auto-fix):
 - 2 spaces, double quotes, no semicolons
 - Line width: 100 characters
+
+**Language**: Always use English for:
+- Code comments
+- Documentation (README, CLAUDE.md, etc.)
+- Commit messages
+- Variable/function names
 
 ## Testing
 

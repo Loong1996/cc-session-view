@@ -12,6 +12,10 @@ A session viewer for browsing, viewing, and exporting conversation history from 
   - **Plain Text**: Clean, readable text format with headers and message separators
   - **Styled HTML**: Beautiful HTML export with color-coded messages, collapsible long content, responsive design, and print-friendly styles
 
+## Screenshots
+
+![Screenshot of the web interface](./docs/screenshots/screen01.png)
+
 ## Installation
 
 ```bash

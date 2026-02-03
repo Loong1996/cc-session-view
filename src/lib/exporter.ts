@@ -271,15 +271,29 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     }
 
     .msg {
-      display: grid;
-      grid-template-columns: 32px 1fr;
+      display: flex;
       gap: var(--space-sm);
       margin-bottom: 3px;
       position: relative;
+      max-width: 85%;
     }
 
     .msg + .msg {
       padding-top: 3px;
+    }
+
+    /* User messages align to the right */
+    .msg.user {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    /* Assistant and other messages align to the left */
+    .msg.assistant,
+    .msg.tool-use,
+    .msg.tool-result,
+    .msg.thinking {
+      margin-right: auto;
     }
 
     .msg-indicator {
@@ -287,6 +301,8 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       align-items: flex-start;
       justify-content: center;
       padding-top: 6px;
+      flex-shrink: 0;
+      width: 32px;
     }
 
     .msg-abbr {
@@ -301,6 +317,7 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
 
     .msg-main {
       min-width: 0;
+      flex: 1;
     }
 
     .msg-meta {
@@ -392,7 +409,8 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     }
     .user .msg-text {
       background: var(--user-bg);
-      border-left-color: var(--user-accent);
+      border-left: none;
+      border-right: 3px solid var(--user-accent);
     }
     .user .msg-text.is-collapsed::after {
       background: linear-gradient(to bottom, transparent, var(--user-bg));
@@ -453,7 +471,8 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     /* === HIDDEN MESSAGES GROUP === */
     .hidden-messages-group {
       margin: var(--space-sm) 0;
-      margin-left: 40px;
+      margin-left: var(--space-xl);
+      max-width: calc(85% - var(--space-xl));
     }
 
     .show-hidden-btn {
@@ -494,7 +513,7 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     .hidden-messages-container {
       display: none;
       margin-top: var(--space-sm);
-      padding-left: 0;
+      padding-left: var(--space-md);
       border-left: 2px dashed var(--peko-blue-soft);
     }
 
@@ -503,7 +522,7 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     }
 
     .hidden-messages-container .msg {
-      margin-left: -40px;
+      margin-left: 0;
     }
 
     /* === SCROLLBAR === */
@@ -560,7 +579,10 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
         max-width: calc(100vw - 120px);
       }
       .msg {
-        grid-template-columns: 28px 1fr;
+        max-width: 95%;
+      }
+      .msg-indicator {
+        width: 28px;
       }
     }
 
@@ -1408,18 +1430,32 @@ function getBranchHtmlStyles(): string {
       white-space: nowrap;
     }
     .msg {
-      display: grid;
-      grid-template-columns: 32px 1fr;
+      display: flex;
       gap: var(--space-sm);
       margin-bottom: 3px;
       position: relative;
+      max-width: 85%;
     }
     .msg + .msg { padding-top: 3px; }
+    /* User messages align to the right */
+    .msg.user {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+    /* Assistant and other messages align to the left */
+    .msg.assistant,
+    .msg.tool-use,
+    .msg.tool-result,
+    .msg.thinking {
+      margin-right: auto;
+    }
     .msg-indicator {
       display: flex;
       align-items: flex-start;
       justify-content: center;
       padding-top: 6px;
+      flex-shrink: 0;
+      width: 32px;
     }
     .msg-abbr {
       font-family: var(--font-mono);
@@ -1430,7 +1466,7 @@ function getBranchHtmlStyles(): string {
       border-radius: var(--radius-sm);
       line-height: 1;
     }
-    .msg-main { min-width: 0; }
+    .msg-main { min-width: 0; flex: 1; }
     .msg-meta {
       display: flex;
       align-items: center;
@@ -1500,7 +1536,7 @@ function getBranchHtmlStyles(): string {
       margin: 0;
     }
     .user .msg-abbr { background: var(--user-bg); color: var(--user-accent); }
-    .user .msg-text { background: var(--user-bg); border-left-color: var(--user-accent); }
+    .user .msg-text { background: var(--user-bg); border-left: none; border-right: 3px solid var(--user-accent); }
     .user .msg-text.is-collapsed::after { background: linear-gradient(to bottom, transparent, var(--user-bg)); }
     .assistant .msg-abbr { background: var(--assistant-bg); color: var(--assistant-accent); }
     .assistant .msg-text { background: var(--assistant-bg); border-left-color: var(--assistant-accent); }
@@ -1515,7 +1551,7 @@ function getBranchHtmlStyles(): string {
     .thinking .msg-text { background: var(--thinking-bg); border-left-color: var(--thinking-accent); }
     .thinking .msg-text pre { color: var(--text-muted); font-style: italic; }
     .thinking .msg-text.is-collapsed::after { background: linear-gradient(to bottom, transparent, var(--thinking-bg)); }
-    .hidden-messages-group { margin: var(--space-sm) 0; margin-left: 40px; }
+    .hidden-messages-group { margin: var(--space-sm) 0; margin-left: var(--space-xl); max-width: calc(85% - var(--space-xl)); }
     .show-hidden-btn {
       display: inline-flex;
       align-items: center;
@@ -1541,11 +1577,11 @@ function getBranchHtmlStyles(): string {
     .hidden-messages-container {
       display: none;
       margin-top: var(--space-sm);
-      padding-left: 0;
+      padding-left: var(--space-md);
       border-left: 2px dashed var(--peko-blue-soft);
     }
     .hidden-messages-container.is-visible { display: block; }
-    .hidden-messages-container .msg { margin-left: -40px; }
+    .hidden-messages-container .msg { margin-left: 0; }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: var(--peko-blue-light); border-radius: 4px; }
     ::-webkit-scrollbar-thumb {
@@ -1568,7 +1604,8 @@ function getBranchHtmlStyles(): string {
       .page { padding: var(--space-lg) var(--space-md); }
       .hdr-title { font-size: 1.3rem; }
       .meta-list { flex-direction: column; gap: var(--space-xs); }
-      .msg { grid-template-columns: 28px 1fr; }
+      .msg { max-width: 95%; }
+      .msg-indicator { width: 28px; }
     }
     @media print {
       .expand-btn { display: none; }

@@ -459,14 +459,28 @@ body::before {
 }
 
 .message {
-  display: grid;
-  grid-template-columns: 32px 1fr;
+  display: flex;
   gap: var(--space-sm);
   margin-bottom: 3px;
+  max-width: 85%;
 }
 
 .message + .message {
   padding-top: 3px;
+}
+
+/* User messages align to the right */
+.message.user {
+  margin-left: auto;
+  flex-direction: row-reverse;
+}
+
+/* Assistant and other messages align to the left */
+.message.assistant,
+.message.tool-use,
+.message.tool-result,
+.message.thinking {
+  margin-right: auto;
 }
 
 .msg-indicator {
@@ -474,6 +488,8 @@ body::before {
   align-items: flex-start;
   justify-content: center;
   padding-top: 6px;
+  flex-shrink: 0;
+  width: 32px;
 }
 
 .msg-abbr {
@@ -488,6 +504,7 @@ body::before {
 
 .msg-main {
   min-width: 0;
+  flex: 1;
 }
 
 .msg-meta {
@@ -578,7 +595,8 @@ body::before {
 }
 .message.user .msg-text {
   background: var(--user-bg);
-  border-left-color: var(--user-accent);
+  border-left: none;
+  border-right: 3px solid var(--user-accent);
 }
 .message.user .msg-text.collapsed::after {
   background: linear-gradient(to bottom, transparent, var(--user-bg));
@@ -639,7 +657,8 @@ body::before {
 /* Hidden messages group */
 .hidden-messages-group {
   margin: var(--space-sm) 0;
-  margin-left: 40px;
+  margin-left: var(--space-xl);
+  max-width: calc(85% - var(--space-xl));
 }
 
 .show-hidden-btn {
@@ -676,7 +695,7 @@ body::before {
 .hidden-messages-container {
   display: none;
   margin-top: var(--space-sm);
-  padding-left: 0;
+  padding-left: var(--space-md);
   border-left: 2px dashed var(--peko-blue-soft);
 }
 
@@ -685,7 +704,7 @@ body::before {
 }
 
 .hidden-messages-container .message {
-  margin-left: -40px;
+  margin-left: 0;
 }
 
 /* === PLACEHOLDER === */
@@ -772,7 +791,11 @@ body::before {
   }
 
   .message {
-    grid-template-columns: 28px 1fr;
+    max-width: 95%;
+  }
+
+  .msg-indicator {
+    width: 28px;
   }
 }
 

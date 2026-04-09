@@ -169,11 +169,11 @@ function getMessageLabel(type: string): string {
 
 function getMessageAbbr(type: string): string {
   const abbrs: Record<string, string> = {
-    user: "U",
-    assistant: "A",
-    tool_use: "T",
-    tool_result: "→",
-    thinking: "R",
+    user: "用户输入",
+    assistant: "AI输出",
+    tool_use: "工具调用",
+    tool_result: "工具结果",
+    thinking: "思考",
   }
   return abbrs[type] || "?"
 }

@@ -487,19 +487,22 @@ body::before {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 6px;
+  padding-top: 0px;
   flex-shrink: 0;
-  width: 32px;
+  width: 60px;
 }
 
 .msg-abbr {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 1rem;
   font-weight: 700;
   text-transform: uppercase;
   padding: 3px 6px;
   border-radius: var(--radius-sm);
   line-height: 1;
+  /* 核心代码 */
+  white-space: nowrap; 
+  display: inline-block; /* 确保 padding 表现正常且不会被轻易挤压 */
 }
 
 .msg-main {

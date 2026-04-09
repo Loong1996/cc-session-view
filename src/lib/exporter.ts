@@ -300,19 +300,22 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding-top: 6px;
+      padding-top: 0px;
       flex-shrink: 0;
-      width: 32px;
+      width: 60px;
     }
 
     .msg-abbr {
       font-family: var(--font-mono);
-      font-size: 0.65rem;
+      font-size: 1rem;
       font-weight: 700;
       text-transform: uppercase;
       padding: 3px 6px;
       border-radius: var(--radius-sm);
       line-height: 1;
+      /* 核心代码 */
+      white-space: nowrap; 
+      display: inline-block; /* 确保 padding 表现正常且不会被轻易挤压 */
     }
 
     .msg-main {
@@ -945,11 +948,11 @@ function _getMessageIcon(type: string): string {
 
 function getMessageAbbr(type: string): string {
   const abbrs: Record<string, string> = {
-    user: "U",
-    assistant: "A",
-    tool_use: "T",
-    tool_result: "R",
-    thinking: "?",
+    user: "用户输入",
+    assistant: "AI输出",
+    tool_use: "工具调用",
+    tool_result: "工具结果",
+    thinking: "思考",
   }
   return abbrs[type] || "?"
 }
@@ -1453,18 +1456,21 @@ function getBranchHtmlStyles(): string {
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding-top: 6px;
+      padding-top: 0px;
       flex-shrink: 0;
-      width: 32px;
+      width: 60px;
     }
     .msg-abbr {
       font-family: var(--font-mono);
-      font-size: 0.65rem;
+      font-size: 1rem;
       font-weight: 700;
       text-transform: uppercase;
       padding: 3px 6px;
       border-radius: var(--radius-sm);
       line-height: 1;
+      /* 核心代码 */
+      white-space: nowrap; 
+      display: inline-block; /* 确保 padding 表现正常且不会被轻易挤压 */
     }
     .msg-main { min-width: 0; flex: 1; }
     .msg-meta {

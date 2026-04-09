@@ -57,7 +57,7 @@ export function BranchDetailView({
     setIncludeOtherAgents(false)
   }
 
-  const handleBranchExport = async (format: "html" | "text") => {
+  const handleBranchExport = async (format: "html" | "text" | "markdown") => {
     setExporting(true)
     try {
       const res = await fetch("/api/export/branch", {
@@ -86,7 +86,8 @@ export function BranchDetailView({
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `branch-${branchName.replace(/[/\\?%*:|"<>]/g, "-")}.${format === "html" ? "html" : "txt"}`
+      const ext = format === "html" ? "html" : format === "markdown" ? "md" : "txt"
+      a.download = `branch-${branchName.replace(/[/\\?%*:|"<>]/g, "-")}.${ext}`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -188,6 +189,15 @@ export function BranchDetailView({
               title="Save as text"
             >
               📝 Text
+            </button>
+            <button
+              type="button"
+              className="action-btn"
+              onClick={() => handleBranchExport("markdown")}
+              disabled={exporting}
+              title="Save as Markdown"
+            >
+              📋 Markdown
             </button>
           </div>
         </div>

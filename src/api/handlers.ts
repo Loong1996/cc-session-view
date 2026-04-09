@@ -3,8 +3,10 @@ import { listCodexSessions, loadCodexSession } from "../lib/codex-parser"
 import {
   type BranchSession,
   exportBranchToHtml,
+  exportBranchToMarkdown,
   exportBranchToText,
   exportToHtml,
+  exportToMarkdown,
   exportToText,
 } from "../lib/exporter"
 import { extractProjects, filterSessions } from "../lib/filter"
@@ -157,7 +159,7 @@ export const apiHandlers = {
       const { agentType, sessionId, format, options } = body as {
         agentType: AgentType
         sessionId: string
-        format: "html" | "text"
+        format: "html" | "text" | "markdown"
         options?: Partial<ExportOptions>
       }
 
@@ -197,10 +199,14 @@ export const apiHandlers = {
       const content =
         format === "html"
           ? exportToHtml(session, exportOptions)
-          : exportToText(session, exportOptions)
+          : format === "markdown"
+            ? exportToMarkdown(session, exportOptions)
+            : exportToText(session, exportOptions)
 
-      const contentType = format === "html" ? "text/html" : "text/plain"
-      const filename = `session-${sessionId.slice(0, 8)}.${format === "html" ? "html" : "txt"}`
+      const contentType =
+        format === "html" ? "text/html" : format === "markdown" ? "text/markdown" : "text/plain"
+      const ext = format === "html" ? "html" : format === "markdown" ? "md" : "txt"
+      const filename = `session-${sessionId.slice(0, 8)}.${ext}`
 
       return new Response(content, {
         headers: {
@@ -299,7 +305,7 @@ export const apiHandlers = {
       const { branchName, agentType, format, options } = body as {
         branchName: string
         agentType?: AgentType
-        format: "html" | "text"
+        format: "html" | "text" | "markdown"
         options?: Partial<ExportOptions>
       }
 
@@ -382,12 +388,16 @@ export const apiHandlers = {
       const content =
         format === "html"
           ? exportBranchToHtml(branchName, branchSessions, sortedMessages, exportOptions)
-          : exportBranchToText(branchName, branchSessions, sortedMessages, exportOptions)
+          : format === "markdown"
+            ? exportBranchToMarkdown(branchName, branchSessions, sortedMessages, exportOptions)
+            : exportBranchToText(branchName, branchSessions, sortedMessages, exportOptions)
 
       // Sanitize branch name for filename
       const safeBranchName = branchName.replace(/[/\\?%*:|"<>]/g, "-")
-      const contentType = format === "html" ? "text/html" : "text/plain"
-      const filename = `branch-${safeBranchName}.${format === "html" ? "html" : "txt"}`
+      const contentType =
+        format === "html" ? "text/html" : format === "markdown" ? "text/markdown" : "text/plain"
+      const ext = format === "html" ? "html" : format === "markdown" ? "md" : "txt"
+      const filename = `branch-${safeBranchName}.${ext}`
 
       return new Response(content, {
         headers: {

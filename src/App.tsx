@@ -13,7 +13,7 @@ import { TabSelector } from "./components/TabSelector"
 import { usePreviewSession } from "./hooks/usePreviewSession"
 import { listClaudeCodeSessions, loadClaudeCodeSession } from "./lib/claude-code-parser"
 import { listCodexSessions, loadCodexSession } from "./lib/codex-parser"
-import { exportToHtml, exportToText } from "./lib/exporter"
+import { exportToHtml, exportToMarkdown, exportToText } from "./lib/exporter"
 import { extractProjects, filterSessions } from "./lib/filter"
 import { detailViewHelp, getFooterHint, listViewHelp } from "./lib/help"
 import { useLayout } from "./lib/layout"
@@ -172,15 +172,17 @@ export function App() {
     setSelectedSession(null)
   }
 
-  async function handleExport(format: "text" | "html") {
+  async function handleExport(format: "text" | "html" | "markdown") {
     if (!selectedSession) return
 
     const content =
       format === "text"
         ? exportToText(selectedSession, exportOptions)
-        : exportToHtml(selectedSession, exportOptions)
+        : format === "markdown"
+          ? exportToMarkdown(selectedSession, exportOptions)
+          : exportToHtml(selectedSession, exportOptions)
 
-    const ext = format === "text" ? "txt" : "html"
+    const ext = format === "text" ? "txt" : format === "markdown" ? "md" : "html"
     const agentName = selectedSession.agentType === "claude-code" ? "claude" : "codex"
     const filename = `session-${agentName}-${selectedSession.id.slice(0, 8)}.${ext}`
     const exportDir = "./exported"

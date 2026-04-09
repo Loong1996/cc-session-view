@@ -47,6 +47,92 @@ export function exportToText(session: SessionDetail, options: ExportOptions): st
   return lines.join("\n")
 }
 
+/** Wrap content in a fenced code block with adaptive backtick count */
+function fenceContent(content: string): string {
+  const matches = [...content.matchAll(/`+/g)].map((m) => m[0].length)
+  const maxTicks = matches.length > 0 ? Math.max(3, ...matches) : 3
+  const fence = "`".repeat(maxTicks + 1)
+  return `${fence}\n${content}\n${fence}`
+}
+
+/** Get message icon for markdown export */
+function getMessageIcon(type: string): string {
+  const icons: Record<string, string> = {
+    user: "👤",
+    assistant: "🤖",
+    tool_use: "⚡",
+    tool_result: "📋",
+    thinking: "💭",
+  }
+  return icons[type] || "💬"
+}
+
+/** Export to Markdown format */
+export function exportToMarkdown(session: SessionDetail, options: ExportOptions): string {
+  const lines: string[] = []
+
+  // Header
+  lines.push(`# Session: ${session.id}`)
+  lines.push("")
+  lines.push("| Field | Value |")
+  lines.push("|-------|-------|")
+  lines.push(`| Type | ${session.agentType === "claude-code" ? "Claude Code" : "Codex CLI"} |`)
+  lines.push(`| Date | ${session.timestamp.toLocaleString("ja-JP")} |`)
+  if (session.cwd) lines.push(`| CWD | ${session.cwd} |`)
+  if (session.gitBranch) lines.push(`| Branch | ${session.gitBranch} |`)
+  if (session.version) lines.push(`| Version | ${session.version} |`)
+  if (session.model) lines.push(`| Model | ${session.model} |`)
+  lines.push("")
+
+  // Messages
+  const filteredMessages = filterMessages(session.messages, options)
+  for (const msg of filteredMessages) {
+    lines.push("---")
+    lines.push("")
+
+    const label = getMessageLabel(msg.type)
+    const icon = getMessageIcon(msg.type)
+    const timestamp = msg.timestamp
+      ? msg.timestamp instanceof Date
+        ? formatTimestamp(msg.timestamp)
+        : formatTimestamp(new Date(msg.timestamp))
+      : ""
+    const timeSuffix = timestamp ? ` <sub>${timestamp}</sub>` : ""
+
+    // Skill call messages
+    if (msg.isSkillCall && msg.skillMeta) {
+      const meta = msg.skillMeta
+      lines.push(`### ${icon} ${label}${timeSuffix}`)
+      lines.push("")
+      lines.push(`> **调用Skill: ${meta.skillName}**`)
+      lines.push("")
+      if (meta.userInput) {
+        lines.push(fenceContent(meta.userInput))
+      }
+      lines.push("")
+      lines.push("<details>")
+      lines.push("<summary>完整内容</summary>")
+      lines.push("")
+      lines.push(fenceContent(meta.fullContent))
+      lines.push("")
+      lines.push("</details>")
+      lines.push("")
+      continue
+    }
+
+    lines.push(`### ${icon} ${label}${timeSuffix}`)
+    lines.push("")
+    if (msg.toolName) {
+      lines.push(`> Tool: ${msg.toolName}`)
+      lines.push("")
+    }
+    lines.push(fenceContent(msg.content))
+    lines.push("")
+  }
+
+  return lines.join("\n")
+}
+
 /** Export to HTML format */
 export function exportToHtml(session: SessionDetail, options: ExportOptions): string {
   const filteredMessages = filterMessages(session.messages, options)
@@ -930,7 +1016,6 @@ function renderSkillCallMessage(msg: Message, i: number): string {
             <span class="skill-call-input-label">用户输入内容:</span>
             <pre class="skill-call-input-content">${userInput}</pre>
           </div>
-          <div class="skill-call-divider">---</div>
           <details class="skill-call-full">
             <summary>完整内容</summary>
             <pre class="skill-call-full-content">${fullContent}</pre>
@@ -1086,17 +1171,6 @@ function getMessageLabel(type: string): string {
   return labels[type] || type.toUpperCase()
 }
 
-function _getMessageIcon(type: string): string {
-  const icons: Record<string, string> = {
-    user: "👤",
-    assistant: "🤖",
-    tool_use: "⚡",
-    tool_result: "📋",
-    thinking: "💭",
-  }
-  return icons[type] || "💬"
-}
-
 function getMessageAbbr(type: string): string {
   const abbrs: Record<string, string> = {
     user: "用户输入",
@@ -1178,6 +1252,75 @@ export function exportBranchToText(
         lines.push(`Tool: ${msg.toolName}`)
       }
       lines.push(msg.content)
+      lines.push("")
+    }
+  }
+
+  return lines.join("\n")
+}
+
+/** Export branch to Markdown format */
+export function exportBranchToMarkdown(
+  branchName: string,
+  sessions: BranchSession[],
+  messages: BranchMessage[],
+  options: ExportOptions,
+): string {
+  const lines: string[] = []
+
+  // Header
+  lines.push(`# Branch: ${branchName}`)
+  lines.push("")
+  lines.push(`**Sessions:** ${sessions.length}`)
+  lines.push("")
+
+  // Group messages by session
+  const messagesBySession = new Map<string, BranchMessage[]>()
+  for (const msg of messages) {
+    const existing = messagesBySession.get(msg.sessionId)
+    if (existing) {
+      existing.push(msg)
+    } else {
+      messagesBySession.set(msg.sessionId, [msg])
+    }
+  }
+
+  // Render each session's messages
+  for (const session of sessions) {
+    const sessionMessages = messagesBySession.get(session.id) || []
+    const filteredMessages = filterBranchMessages(sessionMessages, options)
+
+    if (filteredMessages.length === 0) continue
+
+    const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI"
+    lines.push("---")
+    lines.push("")
+    lines.push(`## SESSION: ${session.id.slice(0, 8)}`)
+    lines.push("")
+    lines.push(`| Field | Value |`)
+    lines.push(`|-------|-------|`)
+    lines.push(`| Type | ${agentLabel} |`)
+    lines.push(`| Date | ${session.timestamp.toLocaleString("ja-JP")} |`)
+    if (session.cwd) lines.push(`| CWD | ${session.cwd} |`)
+    lines.push("")
+
+    for (const msg of filteredMessages) {
+      const label = getMessageLabel(msg.type)
+      const icon = getMessageIcon(msg.type)
+      const timestamp = msg.timestamp
+        ? msg.timestamp instanceof Date
+          ? formatTimestamp(msg.timestamp)
+          : formatTimestamp(new Date(msg.timestamp))
+        : ""
+      const timeSuffix = timestamp ? ` <sub>${timestamp}</sub>` : ""
+
+      lines.push(`### ${icon} ${label}${timeSuffix}`)
+      lines.push("")
+      if (msg.toolName) {
+        lines.push(`> Tool: ${msg.toolName}`)
+        lines.push("")
+      }
+      lines.push(fenceContent(msg.content))
       lines.push("")
     }
   }

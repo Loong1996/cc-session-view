@@ -65,6 +65,7 @@ export const detailViewHelp: HelpData = {
       bindings: [
         { key: "t", description: "Export as text" },
         { key: "h", description: "Export as HTML" },
+        { key: "m", description: "Export as Markdown" },
         { key: "v", description: "View in browser" },
         { key: "o", description: "Export options" },
       ],
@@ -83,5 +84,5 @@ export function getFooterHint(viewMode: "list" | "detail"): string {
   if (viewMode === "list") {
     return "[Up/Down] Navigate  [Enter] Select  [TAB] Switch  [/] Search  [?] Help  [q] Quit"
   }
-  return "[j/k] Scroll  [q] Back  [o] Options  [t] Text  [h] HTML  [v] View  [?] Help"
+  return "[j/k] Scroll  [q] Back  [o] Options  [t] Text  [h] HTML  [m] MD  [v] View  [?] Help"
 }

@@ -9,7 +9,7 @@ interface SessionDetailProps {
   exportOptions: ExportOptions
   onChangeOptions: (options: ExportOptions) => void
   onBack: () => void
-  onExport: (format: "text" | "html") => void
+  onExport: (format: "text" | "html" | "markdown") => void
   onViewInBrowser: () => void
   isActive?: boolean
 }
@@ -108,6 +108,10 @@ export function SessionDetail({
     }
     if (input === "h") {
       onExport("html")
+      return
+    }
+    if (input === "m") {
+      onExport("markdown")
       return
     }
     if (input === "v") {

@@ -370,7 +370,7 @@ function App() {
     includeSystemMessages: boolean
   }
 
-  const handleExport = async (format: "html" | "text", options: ExportOptions) => {
+  const handleExport = async (format: "html" | "text" | "markdown", options: ExportOptions) => {
     if (!selectedSession) return
 
     try {
@@ -391,7 +391,8 @@ function App() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `session-${selectedSession.id.slice(0, 8)}.${format === "html" ? "html" : "txt"}`
+      const ext = format === "html" ? "html" : format === "markdown" ? "md" : "txt"
+      a.download = `session-${selectedSession.id.slice(0, 8)}.${ext}`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

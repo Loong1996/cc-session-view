@@ -41,7 +41,7 @@ interface ExportOptions {
 interface SessionDetailViewProps {
   session: SessionDetail
   loading: boolean
-  onExport: (format: "html" | "text", options: ExportOptions) => void
+  onExport: (format: "html" | "text" | "markdown", options: ExportOptions) => void
   onBranchClick?: (branchName: string) => void
 }
 
@@ -178,6 +178,21 @@ export function SessionDetailView({
             }
           >
             📝 Text
+          </button>
+          <button
+            type="button"
+            className="action-btn"
+            onClick={() =>
+              onExport("markdown", {
+                includeUser: true,
+                includeAssistant: true,
+                includeToolUse: showToolMessages,
+                includeThinking: showThinkingMessages,
+                includeSystemMessages: showSystemMessages,
+              })
+            }
+          >
+            📋 Markdown
           </button>
         </div>
       </div>

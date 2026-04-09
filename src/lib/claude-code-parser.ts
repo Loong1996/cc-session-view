@@ -183,7 +183,7 @@ function parseSkillCall(content: string): SkillCallMeta | null {
   // Extract skill name from path (last part after /skills/)
   // Note: must use \/skills\/ to match the literal /skills/ path segment,
   // not skills/ which could match agent-skills/skills/ incorrectly
-  const skillNameMatch = content.match(/\/skills\/([^\/\n]+)/)
+  const skillNameMatch = content.match(/\/skills\/([^/\n]+)/)
   const skillName = skillNameMatch ? skillNameMatch[1].trim() : "unknown"
 
   // Extract user input (content after ARGUMENTS:)

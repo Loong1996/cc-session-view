@@ -119,7 +119,6 @@ function SkillCallMessage({ message }: { message: Message }) {
             <span className="skill-call-input-label">用户输入内容:</span>
             <pre className="skill-call-input-content">{meta.userInput}</pre>
           </div>
-          <div className="skill-call-divider">---</div>
           <details className="skill-call-full">
             <summary>完整内容</summary>
             <pre className="skill-call-full-content">{meta.fullContent}</pre>

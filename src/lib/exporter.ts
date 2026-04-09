@@ -109,13 +109,15 @@ export function exportToMarkdown(session: SessionDetail, options: ExportOptions)
       if (meta.userInput) {
         lines.push(fenceContent(meta.userInput))
       }
-      lines.push("")
-      lines.push("<details>")
-      lines.push("<summary>完整内容</summary>")
-      lines.push("")
-      lines.push(fenceContent(meta.fullContent))
-      lines.push("")
-      lines.push("</details>")
+      if (options.includeSkillFullContent) {
+        lines.push("")
+        lines.push("<details>")
+        lines.push("<summary>完整内容</summary>")
+        lines.push("")
+        lines.push(fenceContent(meta.fullContent))
+        lines.push("")
+        lines.push("</details>")
+      }
       lines.push("")
       continue
     }
@@ -143,7 +145,7 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
   const messagesHtml = messageGroups
     .map((group) => {
       if (group.type === "single") {
-        return renderSingleMessage(group.message, group.index)
+        return renderSingleMessage(group.message, group.index, options)
       } else {
         return renderConsecutiveAssistantGroup(group.messages, group.startIndex)
       }
@@ -945,7 +947,7 @@ function groupConsecutiveAssistantMessages(messages: Message[]): MessageGroup[] 
   return groups
 }
 
-function renderSingleMessage(msg: Message, i: number): string {
+function renderSingleMessage(msg: Message, i: number, options?: ExportOptions): string {
   const typeClass = msg.type.replace("_", "-")
   const toolInfo = msg.toolName ? `<code class="tool-tag">${escapeHtml(msg.toolName)}</code>` : ""
   const content = escapeHtml(msg.content)
@@ -960,7 +962,7 @@ function renderSingleMessage(msg: Message, i: number): string {
 
   // Handle skill call messages specially
   if (msg.isSkillCall && msg.skillMeta) {
-    return renderSkillCallMessage(msg, i)
+    return renderSkillCallMessage(msg, i, options)
   }
 
   return `
@@ -988,7 +990,7 @@ function renderSingleMessage(msg: Message, i: number): string {
   `
 }
 
-function renderSkillCallMessage(msg: Message, i: number): string {
+function renderSkillCallMessage(msg: Message, i: number, options?: ExportOptions): string {
   const meta = msg.skillMeta!
   const timestamp = msg.timestamp
     ? msg.timestamp instanceof Date
@@ -1000,6 +1002,7 @@ function renderSkillCallMessage(msg: Message, i: number): string {
   const typeLabel = getMessageLabel(msg.type)
   const typeAbbr = getMessageAbbr(msg.type)
   const typeClass = msg.type.replace("_", "-")
+  const includeFullContent = options?.includeSkillFullContent ?? true
 
   return `
     <article class="msg ${typeClass} skill-call" id="msg-${i}">
@@ -1016,10 +1019,14 @@ function renderSkillCallMessage(msg: Message, i: number): string {
             <span class="skill-call-input-label">用户输入内容:</span>
             <pre class="skill-call-input-content">${userInput}</pre>
           </div>
-          <details class="skill-call-full">
+          ${
+            includeFullContent
+              ? `<details class="skill-call-full">
             <summary>完整内容</summary>
             <pre class="skill-call-full-content">${fullContent}</pre>
-          </details>
+          </details>`
+              : ""
+          }
         </div>
       </div>
     </article>

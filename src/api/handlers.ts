@@ -195,6 +195,7 @@ export const apiHandlers = {
         includeToolUse: options?.includeToolUse ?? false,
         includeThinking: options?.includeThinking ?? false,
         includeSystemMessages: options?.includeSystemMessages ?? false,
+        includeSkillFullContent: options?.includeSkillFullContent ?? false,
       }
 
       // Export
@@ -476,6 +477,7 @@ export const apiHandlers = {
         includeToolUse: options?.includeToolUse ?? false,
         includeThinking: options?.includeThinking ?? false,
         includeSystemMessages: options?.includeSystemMessages ?? false,
+        includeSkillFullContent: options?.includeSkillFullContent ?? false,
       }
 
       // Export

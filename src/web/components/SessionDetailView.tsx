@@ -36,6 +36,7 @@ interface ExportOptions {
   includeToolUse: boolean
   includeThinking: boolean
   includeSystemMessages: boolean
+  includeSkillFullContent: boolean
 }
 
 interface SessionDetailViewProps {
@@ -54,6 +55,7 @@ export function SessionDetailView({
   const [showToolMessages, setShowToolMessages] = useState(false)
   const [showSystemMessages, setShowSystemMessages] = useState(false)
   const [showThinkingMessages, setShowThinkingMessages] = useState(false)
+  const [includeSkillFullContent, setIncludeSkillFullContent] = useState(false)
 
   if (loading) {
     return <div className="loading">Loading...</div>
@@ -148,6 +150,14 @@ export function SessionDetailView({
               <span className="chip-icon">🔧</span>
               <span>Tools</span>
             </button>
+            <button
+              type="button"
+              className={`toggle-chip ${includeSkillFullContent ? "active" : ""}`}
+              onClick={() => setIncludeSkillFullContent(!includeSkillFullContent)}
+            >
+              <span className="chip-icon">📜</span>
+              <span>Skill Full</span>
+            </button>
           </div>
           <button
             type="button"
@@ -159,6 +169,7 @@ export function SessionDetailView({
                 includeToolUse: showToolMessages,
                 includeThinking: showThinkingMessages,
                 includeSystemMessages: showSystemMessages,
+                includeSkillFullContent,
               })
             }
           >
@@ -174,6 +185,7 @@ export function SessionDetailView({
                 includeToolUse: showToolMessages,
                 includeThinking: showThinkingMessages,
                 includeSystemMessages: showSystemMessages,
+                includeSkillFullContent,
               })
             }
           >
@@ -189,6 +201,7 @@ export function SessionDetailView({
                 includeToolUse: showToolMessages,
                 includeThinking: showThinkingMessages,
                 includeSystemMessages: showSystemMessages,
+                includeSkillFullContent,
               })
             }
           >
@@ -198,7 +211,10 @@ export function SessionDetailView({
       </div>
       <div className="messages-container">
         <div className="message-count">{filteredMessages.length} messages</div>
-        <MessageRenderer messages={filteredMessages} />
+        <MessageRenderer
+          messages={filteredMessages}
+          showSkillFullContent={includeSkillFullContent}
+        />
       </div>
     </>
   )

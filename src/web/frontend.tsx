@@ -380,6 +380,7 @@ function App() {
     includeToolUse: boolean
     includeThinking: boolean
     includeSystemMessages: boolean
+    includeSkillFullContent: boolean
   }
 
   const handleExport = async (format: "html" | "text" | "markdown", options: ExportOptions) => {

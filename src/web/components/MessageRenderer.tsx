@@ -19,6 +19,7 @@ interface Message {
 
 interface MessageRendererProps {
   messages: Message[]
+  showSkillFullContent?: boolean
 }
 
 interface MessageGroup {
@@ -27,20 +28,27 @@ interface MessageGroup {
   startIndex: number
 }
 
-export function MessageRenderer({ messages }: MessageRendererProps) {
+export function MessageRenderer({ messages, showSkillFullContent }: MessageRendererProps) {
   const groups = useMemo(() => groupConsecutiveAssistantMessages(messages), [messages])
 
   return (
     <div>
       {groups.map((group) => {
         if (group.type === "single") {
-          return <SingleMessage key={`msg-${group.startIndex}`} message={group.messages[0]!} />
+          return (
+            <SingleMessage
+              key={`msg-${group.startIndex}`}
+              message={group.messages[0]!}
+              showSkillFullContent={showSkillFullContent}
+            />
+          )
         }
         return (
           <ConsecutiveAssistantGroup
             key={`group-${group.startIndex}`}
             messages={group.messages}
             startIndex={group.startIndex}
+            showSkillFullContent={showSkillFullContent}
           />
         )
       })}
@@ -48,7 +56,13 @@ export function MessageRenderer({ messages }: MessageRendererProps) {
   )
 }
 
-function SingleMessage({ message }: { message: Message }) {
+function SingleMessage({
+  message,
+  showSkillFullContent,
+}: {
+  message: Message
+  showSkillFullContent?: boolean
+}) {
   const [expanded, setExpanded] = useState(false)
   const isLong = message.content.length > 800
   const typeClass = message.type.replace("_", "-")
@@ -62,7 +76,7 @@ function SingleMessage({ message }: { message: Message }) {
 
   // Render skill call messages specially
   if (message.isSkillCall && message.skillMeta) {
-    return <SkillCallMessage message={message} />
+    return <SkillCallMessage message={message} showFullContent={showSkillFullContent} />
   }
 
   return (
@@ -92,7 +106,13 @@ function SingleMessage({ message }: { message: Message }) {
   )
 }
 
-function SkillCallMessage({ message }: { message: Message }) {
+function SkillCallMessage({
+  message,
+  showFullContent,
+}: {
+  message: Message
+  showFullContent?: boolean
+}) {
   const meta = message.skillMeta!
   const timestamp = message.timestamp
     ? message.timestamp instanceof Date
@@ -119,10 +139,12 @@ function SkillCallMessage({ message }: { message: Message }) {
             <span className="skill-call-input-label">用户输入内容:</span>
             <pre className="skill-call-input-content">{meta.userInput}</pre>
           </div>
-          <details className="skill-call-full">
-            <summary>完整内容</summary>
-            <pre className="skill-call-full-content">{meta.fullContent}</pre>
-          </details>
+          {showFullContent && (
+            <details className="skill-call-full">
+              <summary>完整内容</summary>
+              <pre className="skill-call-full-content">{meta.fullContent}</pre>
+            </details>
+          )}
         </div>
       </div>
     </article>
@@ -132,9 +154,11 @@ function SkillCallMessage({ message }: { message: Message }) {
 function ConsecutiveAssistantGroup({
   messages,
   startIndex,
+  showSkillFullContent,
 }: {
   messages: Message[]
   startIndex: number
+  showSkillFullContent?: boolean
 }) {
   const [showHidden, setShowHidden] = useState(false)
   const hiddenCount = messages.length - 2
@@ -144,7 +168,7 @@ function ConsecutiveAssistantGroup({
 
   return (
     <>
-      <SingleMessage message={firstMsg} />
+      <SingleMessage message={firstMsg} showSkillFullContent={showSkillFullContent} />
 
       <div className="hidden-messages-group">
         <button
@@ -159,12 +183,16 @@ function ConsecutiveAssistantGroup({
         </button>
         <div className={`hidden-messages-container ${showHidden ? "visible" : ""}`}>
           {middleMessages.map((msg, idx) => (
-            <SingleMessage key={`hidden-${startIndex + 1 + idx}`} message={msg} />
+            <SingleMessage
+              key={`hidden-${startIndex + 1 + idx}`}
+              message={msg}
+              showSkillFullContent={showSkillFullContent}
+            />
           ))}
         </div>
       </div>
 
-      <SingleMessage message={lastMsg} />
+      <SingleMessage message={lastMsg} showSkillFullContent={showSkillFullContent} />
     </>
   )
 }

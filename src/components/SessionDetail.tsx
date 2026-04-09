@@ -1,5 +1,6 @@
 import { Box, Text, useInput } from "ink"
 import { useEffect, useMemo, useState } from "react"
+import { formatTimestamp } from "../lib/format"
 import type { ExportOptions, SessionDetail as SessionDetailType } from "../lib/types"
 import { ScrollIndicator } from "./ScrollIndicator"
 
@@ -257,6 +258,7 @@ interface MessageItemProps {
   message: {
     type: string
     content: string
+    timestamp?: Date
     toolName?: string
   }
 }
@@ -285,7 +287,8 @@ function MessageItem({ message }: MessageItemProps) {
 
   return (
     <Box>
-      <Box width={8}>
+      <Box width={12}>
+        {message.timestamp && <Text dimColor>{formatTimestamp(message.timestamp)} </Text>}
         <Text color={color} bold>
           [{label}]
         </Text>

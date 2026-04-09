@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { formatTimestamp } from "../../lib/format"
 
 interface Message {
   type: "user" | "assistant" | "tool_use" | "tool_result" | "thinking"
@@ -45,6 +46,12 @@ function SingleMessage({ message }: { message: Message }) {
   const typeClass = message.type.replace("_", "-")
   const abbr = getMessageAbbr(message.type)
 
+  const timestamp = message.timestamp
+    ? message.timestamp instanceof Date
+      ? formatTimestamp(message.timestamp)
+      : formatTimestamp(new Date(message.timestamp))
+    : null
+
   return (
     <article className={`message ${typeClass}`}>
       <div className="msg-indicator" title={getMessageLabel(message.type)}>
@@ -52,6 +59,7 @@ function SingleMessage({ message }: { message: Message }) {
       </div>
       <div className="msg-main">
         <div className="msg-meta">
+          {timestamp && <span className="timestamp">{timestamp}</span>}
           {message.toolName && <code className="tool-tag">{message.toolName}</code>}
           {isLong && (
             <button

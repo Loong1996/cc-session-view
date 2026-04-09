@@ -1,3 +1,4 @@
+import { formatTimestamp } from "./format"
 import type { BranchMessage, ExportOptions, Message, SessionDetail } from "./types"
 
 /** Branch session info for export */
@@ -28,7 +29,12 @@ export function exportToText(session: SessionDetail, options: ExportOptions): st
   const filteredMessages = filterMessages(session.messages, options)
   for (const msg of filteredMessages) {
     const label = getMessageLabel(msg.type)
-    lines.push(`[${label}]`)
+    const timestamp = msg.timestamp
+      ? msg.timestamp instanceof Date
+        ? formatTimestamp(msg.timestamp)
+        : formatTimestamp(new Date(msg.timestamp))
+      : ""
+    lines.push(`[${timestamp}] [${label}]`)
     if (msg.toolName) {
       lines.push(`Tool: ${msg.toolName}`)
     }
@@ -329,6 +335,12 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       gap: var(--space-sm);
       min-height: 22px;
       margin-bottom: 2px;
+    }
+
+    .timestamp {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
     }
 
     .tool-tag {
@@ -783,6 +795,11 @@ function renderSingleMessage(msg: Message, i: number): string {
   const isLong = msg.content.length > 800
   const typeLabel = getMessageLabel(msg.type)
   const typeAbbr = getMessageAbbr(msg.type)
+  const timestamp = msg.timestamp
+    ? msg.timestamp instanceof Date
+      ? `<span class="timestamp">${formatTimestamp(msg.timestamp)}</span>`
+      : `<span class="timestamp">${formatTimestamp(new Date(msg.timestamp))}</span>`
+    : ""
 
   return `
     <article class="msg ${typeClass}" id="msg-${i}">
@@ -791,6 +808,7 @@ function renderSingleMessage(msg: Message, i: number): string {
       </div>
       <div class="msg-main">
         <div class="msg-meta">
+          ${timestamp}
           ${toolInfo}
           ${
             isLong
@@ -819,12 +837,22 @@ function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number
   const firstContent = escapeHtml(firstMsg.content)
   const firstIsLong = firstMsg.content.length > 800
   const firstIndex = startIndex
+  const firstTimestamp = firstMsg.timestamp
+    ? firstMsg.timestamp instanceof Date
+      ? `<span class="timestamp">${formatTimestamp(firstMsg.timestamp)}</span>`
+      : `<span class="timestamp">${formatTimestamp(new Date(firstMsg.timestamp))}</span>`
+    : ""
 
   // Last message (always visible)
   const lastMsg = messages[messages.length - 1]!
   const lastContent = escapeHtml(lastMsg.content)
   const lastIsLong = lastMsg.content.length > 800
   const lastIndex = startIndex + messages.length - 1
+  const lastTimestamp = lastMsg.timestamp
+    ? lastMsg.timestamp instanceof Date
+      ? `<span class="timestamp">${formatTimestamp(lastMsg.timestamp)}</span>`
+      : `<span class="timestamp">${formatTimestamp(new Date(lastMsg.timestamp))}</span>`
+    : ""
 
   // Middle messages (hidden by default)
   const middleMessages = messages.slice(1, -1)
@@ -833,6 +861,11 @@ function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number
       const content = escapeHtml(msg.content)
       const isLong = msg.content.length > 800
       const msgIndex = startIndex + 1 + idx
+      const msgTimestamp = msg.timestamp
+        ? msg.timestamp instanceof Date
+          ? `<span class="timestamp">${formatTimestamp(msg.timestamp)}</span>`
+          : `<span class="timestamp">${formatTimestamp(new Date(msg.timestamp))}</span>`
+        : ""
 
       return `
       <article class="msg assistant hidden-msg" id="msg-${msgIndex}">
@@ -841,6 +874,7 @@ function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number
         </div>
         <div class="msg-main">
           <div class="msg-meta">
+            ${msgTimestamp}
             ${
               isLong
                 ? `<button class="expand-btn" onclick="toggleMsg(${msgIndex})" data-expanded="false">
@@ -865,6 +899,7 @@ function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number
       </div>
       <div class="msg-main">
         <div class="msg-meta">
+          ${firstTimestamp}
           ${
             firstIsLong
               ? `<button class="expand-btn" onclick="toggleMsg(${firstIndex})" data-expanded="false">
@@ -895,6 +930,7 @@ function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number
       </div>
       <div class="msg-main">
         <div class="msg-meta">
+          ${lastTimestamp}
           ${
             lastIsLong
               ? `<button class="expand-btn" onclick="toggleMsg(${lastIndex})" data-expanded="false">
@@ -1017,7 +1053,12 @@ export function exportBranchToText(
 
     for (const msg of filteredMessages) {
       const label = getMessageLabel(msg.type)
-      lines.push(`[${label}]`)
+      const timestamp = msg.timestamp
+        ? msg.timestamp instanceof Date
+          ? formatTimestamp(msg.timestamp)
+          : formatTimestamp(new Date(msg.timestamp))
+        : ""
+      lines.push(`[${timestamp}] [${label}]`)
       if (msg.toolName) {
         lines.push(`Tool: ${msg.toolName}`)
       }
@@ -1185,11 +1226,21 @@ function renderConsecutiveAssistantGroupForBranch(messages: Message[], startInde
   const firstContent = escapeHtml(firstMsg.content)
   const firstIsLong = firstMsg.content.length > 800
   const firstIndex = startIndex
+  const firstTimestamp = firstMsg.timestamp
+    ? firstMsg.timestamp instanceof Date
+      ? `<span class="timestamp">${formatTimestamp(firstMsg.timestamp)}</span>`
+      : `<span class="timestamp">${formatTimestamp(new Date(firstMsg.timestamp))}</span>`
+    : ""
 
   const lastMsg = messages[messages.length - 1]!
   const lastContent = escapeHtml(lastMsg.content)
   const lastIsLong = lastMsg.content.length > 800
   const lastIndex = startIndex + messages.length - 1
+  const lastTimestamp = lastMsg.timestamp
+    ? lastMsg.timestamp instanceof Date
+      ? `<span class="timestamp">${formatTimestamp(lastMsg.timestamp)}</span>`
+      : `<span class="timestamp">${formatTimestamp(new Date(lastMsg.timestamp))}</span>`
+    : ""
 
   const middleMessages = messages.slice(1, -1)
   const middleHtml = middleMessages
@@ -1197,6 +1248,11 @@ function renderConsecutiveAssistantGroupForBranch(messages: Message[], startInde
       const content = escapeHtml(msg.content)
       const isLong = msg.content.length > 800
       const msgIndex = startIndex + 1 + idx
+      const msgTimestamp = msg.timestamp
+        ? msg.timestamp instanceof Date
+          ? `<span class="timestamp">${formatTimestamp(msg.timestamp)}</span>`
+          : `<span class="timestamp">${formatTimestamp(new Date(msg.timestamp))}</span>`
+        : ""
 
       return `
       <article class="msg assistant hidden-msg" id="msg-${msgIndex}">
@@ -1205,6 +1261,7 @@ function renderConsecutiveAssistantGroupForBranch(messages: Message[], startInde
         </div>
         <div class="msg-main">
           <div class="msg-meta">
+            ${msgTimestamp}
             ${
               isLong
                 ? `<button class="expand-btn" onclick="toggleMsg(${msgIndex})" data-expanded="false">
@@ -1229,6 +1286,7 @@ function renderConsecutiveAssistantGroupForBranch(messages: Message[], startInde
       </div>
       <div class="msg-main">
         <div class="msg-meta">
+          ${firstTimestamp}
           ${
             firstIsLong
               ? `<button class="expand-btn" onclick="toggleMsg(${firstIndex})" data-expanded="false">
@@ -1259,6 +1317,7 @@ function renderConsecutiveAssistantGroupForBranch(messages: Message[], startInde
       </div>
       <div class="msg-main">
         <div class="msg-meta">
+          ${lastTimestamp}
           ${
             lastIsLong
               ? `<button class="expand-btn" onclick="toggleMsg(${lastIndex})" data-expanded="false">
@@ -1479,6 +1538,11 @@ function getBranchHtmlStyles(): string {
       gap: var(--space-sm);
       min-height: 22px;
       margin-bottom: 2px;
+    }
+    .timestamp {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
     }
     .tool-tag {
       font-family: var(--font-mono);

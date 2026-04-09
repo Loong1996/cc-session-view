@@ -1,4 +1,5 @@
 import { Box, Text } from "ink"
+import { formatTimeShort } from "../lib/format"
 import type { Message, SessionDetail, SessionSummary } from "../lib/types"
 
 interface SessionPreviewProps {
@@ -140,8 +141,15 @@ function PreviewMessageItem({ message, maxWidth }: { message: Message; maxWidth:
   const label = roleLabels[message.type] || "????"
   const content = message.content.replace(/\n/g, " ").slice(0, Math.max(0, maxWidth - 10))
 
+  const timestamp = message.timestamp
+    ? message.timestamp instanceof Date
+      ? formatTimeShort(message.timestamp)
+      : formatTimeShort(new Date(message.timestamp))
+    : null
+
   return (
     <Box>
+      {timestamp && <Text dimColor>{timestamp} </Text>}
       <Text color={color}>[{label}] </Text>
       <Text wrap="truncate">{content}</Text>
     </Box>

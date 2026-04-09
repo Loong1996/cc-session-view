@@ -1,6 +1,12 @@
 import { useState } from "react"
 import { MessageRenderer } from "./MessageRenderer"
 
+interface SkillCallMeta {
+  skillName: string
+  userInput: string
+  fullContent: string
+}
+
 interface Message {
   type: "user" | "assistant" | "tool_use" | "tool_result" | "thinking"
   content: string
@@ -8,6 +14,8 @@ interface Message {
   toolName?: string
   toolId?: string
   isSystemMessage?: boolean
+  isSkillCall?: boolean
+  skillMeta?: SkillCallMeta
 }
 
 interface SessionDetail {

@@ -1,12 +1,20 @@
 import { useMemo, useState } from "react"
 import { formatTimestamp } from "../../lib/format"
 
+interface SkillCallMeta {
+  skillName: string
+  userInput: string
+  fullContent: string
+}
+
 interface Message {
   type: "user" | "assistant" | "tool_use" | "tool_result" | "thinking"
   content: string
   timestamp?: string
   toolName?: string
   toolId?: string
+  isSkillCall?: boolean
+  skillMeta?: SkillCallMeta
 }
 
 interface MessageRendererProps {
@@ -52,6 +60,11 @@ function SingleMessage({ message }: { message: Message }) {
       : formatTimestamp(new Date(message.timestamp))
     : null
 
+  // Render skill call messages specially
+  if (message.isSkillCall && message.skillMeta) {
+    return <SkillCallMessage message={message} />
+  }
+
   return (
     <article className={`message ${typeClass}`}>
       <div className="msg-indicator" title={getMessageLabel(message.type)}>
@@ -73,6 +86,44 @@ function SingleMessage({ message }: { message: Message }) {
         </div>
         <div className={`msg-text ${isLong && !expanded ? "collapsed" : ""}`}>
           <pre>{message.content}</pre>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function SkillCallMessage({ message }: { message: Message }) {
+  const meta = message.skillMeta!
+  const timestamp = message.timestamp
+    ? message.timestamp instanceof Date
+      ? formatTimestamp(message.timestamp)
+      : formatTimestamp(new Date(message.timestamp))
+    : null
+
+  // Keep original type (user/assistant) but add skill-call class for special styling
+  const typeClass = message.type.replace("_", "-")
+  const abbr = getMessageAbbr(message.type)
+
+  return (
+    <article className={`message ${typeClass} skill-call`}>
+      <div className="msg-indicator" title={getMessageLabel(message.type)}>
+        <span className="msg-abbr">{abbr}</span>
+      </div>
+      <div className="msg-main">
+        <div className="msg-meta">
+          {timestamp && <span className="timestamp">{timestamp}</span>}
+        </div>
+        <div className="skill-call-content">
+          <div className="skill-call-header">调用Skill: {meta.skillName}</div>
+          <div className="skill-call-input">
+            <span className="skill-call-input-label">用户输入内容:</span>
+            <pre className="skill-call-input-content">{meta.userInput}</pre>
+          </div>
+          <div className="skill-call-divider">---</div>
+          <details className="skill-call-full">
+            <summary>完整内容</summary>
+            <pre className="skill-call-full-content">{meta.fullContent}</pre>
+          </details>
         </div>
       </div>
     </article>

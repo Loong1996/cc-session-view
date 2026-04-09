@@ -957,3 +957,87 @@ body::before {
   border-radius: var(--radius-md);
   white-space: nowrap;
 }
+
+/* === SKILL CALL === */
+.message.skill-call {
+  margin-left: auto;
+  flex-direction: row-reverse;
+}
+
+.message.skill-call .msg-abbr {
+  background: rgba(255, 200, 0, 0.2);
+  color: #ffc800;
+}
+
+.message.skill-call .msg-text {
+  background: rgba(255, 200, 0, 0.1);
+  border-left: none;
+  border-right: 3px solid #ffc800;
+}
+
+.skill-call-content {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: rgba(255, 200, 0, 0.1);
+  border-left: none;
+  border-right: 3px solid #ffc800;
+}
+
+.skill-call-header {
+  font-weight: bold;
+  color: #ffc800;
+  margin-bottom: var(--space-sm);
+  font-size: 0.85rem;
+}
+
+.skill-call-input {
+  margin-top: var(--space-sm);
+}
+
+.skill-call-input-label {
+  color: #00bfff;
+  font-size: 0.85rem;
+}
+
+.skill-call-input-content {
+  background: rgba(0, 0, 0, 0.2);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+.skill-call-divider {
+  color: var(--text-muted);
+  margin: var(--space-sm) 0;
+  font-family: var(--font-mono);
+}
+
+.skill-call-full {
+  margin-top: var(--space-sm);
+}
+
+.skill-call-full summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: var(--space-xs) 0;
+}
+
+.skill-call-full summary:hover {
+  color: var(--peko-blue);
+}
+
+.skill-call-full-content {
+  background: rgba(0, 0, 0, 0.2);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-xs);
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  max-height: 400px;
+  overflow-y: auto;
+}

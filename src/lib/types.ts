@@ -32,6 +32,13 @@ export const defaultFilterState: FilterState = {
 /** Message types */
 export type MessageType = "user" | "assistant" | "tool_use" | "tool_result" | "thinking"
 
+/** Skill call metadata */
+export interface SkillCallMeta {
+  skillName: string
+  userInput: string
+  fullContent: string
+}
+
 /** Conversation message */
 export interface Message {
   type: MessageType
@@ -40,6 +47,8 @@ export interface Message {
   toolName?: string // For tool_use
   toolId?: string // For tool_use/tool_result
   isSystemMessage?: boolean // System messages (e.g., <system-reminder>, <environment>)
+  isSkillCall?: boolean // Skill call messages
+  skillMeta?: SkillCallMeta // Parsed skill call metadata
 }
 
 /** Session detail information */

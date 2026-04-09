@@ -483,6 +483,77 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       background: linear-gradient(to bottom, transparent, var(--thinking-bg));
     }
 
+    /* === SKILL CALL === */
+    .skill-call {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+    .skill-call .msg-abbr {
+      background: rgba(255, 200, 0, 0.2);
+      color: #ffc800;
+    }
+    .skill-call .msg-text {
+      background: rgba(255, 200, 0, 0.1);
+      border-left: none;
+      border-right: 3px solid #ffc800;
+    }
+    .skill-call-content {
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-md);
+      background: rgba(255, 200, 0, 0.1);
+      border-left: none;
+      border-right: 3px solid #ffc800;
+    }
+    .skill-call-header {
+      font-weight: bold;
+      color: #ffc800;
+      margin-bottom: var(--space-sm);
+    }
+    .skill-call-input {
+      margin-top: var(--space-sm);
+    }
+    .skill-call-input-label {
+      color: var(--peko-blue);
+      font-size: 0.85rem;
+    }
+    .skill-call-input-content {
+      background: rgba(0, 0, 0, 0.2);
+      padding: var(--space-sm);
+      border-radius: var(--radius-sm);
+      margin-top: 4px;
+      white-space: pre-wrap;
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+    }
+    .skill-call-divider {
+      color: var(--text-muted);
+      margin: var(--space-sm) 0;
+      font-family: var(--font-mono);
+    }
+    .skill-call-full {
+      margin-top: var(--space-sm);
+    }
+    .skill-call-full summary {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: var(--space-xs) 0;
+    }
+    .skill-call-full summary:hover {
+      color: var(--peko-blue);
+    }
+    .skill-call-full-content {
+      background: rgba(0, 0, 0, 0.2);
+      padding: var(--space-sm);
+      border-radius: var(--radius-sm);
+      margin-top: var(--space-xs);
+      white-space: pre-wrap;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
     /* === HIDDEN MESSAGES GROUP === */
     .hidden-messages-group {
       margin: var(--space-sm) 0;
@@ -801,6 +872,11 @@ function renderSingleMessage(msg: Message, i: number): string {
       : `<span class="timestamp">${formatTimestamp(new Date(msg.timestamp))}</span>`
     : ""
 
+  // Handle skill call messages specially
+  if (msg.isSkillCall && msg.skillMeta) {
+    return renderSkillCallMessage(msg, i)
+  }
+
   return `
     <article class="msg ${typeClass}" id="msg-${i}">
       <div class="msg-indicator" title="${typeLabel}">
@@ -820,6 +896,45 @@ function renderSingleMessage(msg: Message, i: number): string {
         </div>
         <div class="msg-text ${isLong ? "is-collapsed" : ""}">
           <pre>${content}</pre>
+        </div>
+      </div>
+    </article>
+  `
+}
+
+function renderSkillCallMessage(msg: Message, i: number): string {
+  const meta = msg.skillMeta!
+  const timestamp = msg.timestamp
+    ? msg.timestamp instanceof Date
+      ? `<span class="timestamp">${formatTimestamp(msg.timestamp)}</span>`
+      : `<span class="timestamp">${formatTimestamp(new Date(msg.timestamp))}</span>`
+    : ""
+  const fullContent = escapeHtml(meta.fullContent)
+  const userInput = escapeHtml(meta.userInput)
+  const typeLabel = getMessageLabel(msg.type)
+  const typeAbbr = getMessageAbbr(msg.type)
+  const typeClass = msg.type.replace("_", "-")
+
+  return `
+    <article class="msg ${typeClass} skill-call" id="msg-${i}">
+      <div class="msg-indicator" title="${typeLabel}">
+        <span class="msg-abbr">${typeAbbr}</span>
+      </div>
+      <div class="msg-main">
+        <div class="msg-meta">
+          ${timestamp}
+        </div>
+        <div class="skill-call-content">
+          <div class="skill-call-header">调用Skill: ${escapeHtml(meta.skillName)}</div>
+          <div class="skill-call-input">
+            <span class="skill-call-input-label">用户输入内容:</span>
+            <pre class="skill-call-input-content">${userInput}</pre>
+          </div>
+          <div class="skill-call-divider">---</div>
+          <details class="skill-call-full">
+            <summary>完整内容</summary>
+            <pre class="skill-call-full-content">${fullContent}</pre>
+          </details>
         </div>
       </div>
     </article>
@@ -1621,6 +1736,19 @@ function getBranchHtmlStyles(): string {
     .thinking .msg-text { background: var(--thinking-bg); border-left-color: var(--thinking-accent); }
     .thinking .msg-text pre { color: var(--text-muted); font-style: italic; }
     .thinking .msg-text.is-collapsed::after { background: linear-gradient(to bottom, transparent, var(--thinking-bg)); }
+    .skill-call { margin-left: auto; flex-direction: row-reverse; }
+    .skill-call .msg-abbr { background: rgba(255, 200, 0, 0.2); color: #ffc800; }
+    .skill-call .msg-text { background: rgba(255, 200, 0, 0.1); border-left: none; border-right: 3px solid #ffc800; }
+    .skill-call-content { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); background: rgba(255, 200, 0, 0.1); border-left: none; border-right: 3px solid #ffc800; }
+    .skill-call-header { font-weight: bold; color: #ffc800; margin-bottom: var(--space-sm); }
+    .skill-call-input { margin-top: var(--space-sm); }
+    .skill-call-input-label { color: var(--peko-blue); font-size: 0.85rem; }
+    .skill-call-input-content { background: rgba(0, 0, 0, 0.2); padding: var(--space-sm); border-radius: var(--radius-sm); margin-top: 4px; white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.875rem; }
+    .skill-call-divider { color: var(--text-muted); margin: var(--space-sm) 0; font-family: var(--font-mono); }
+    .skill-call-full { margin-top: var(--space-sm); }
+    .skill-call-full summary { cursor: pointer; color: var(--text-muted); font-size: 0.85rem; padding: var(--space-xs) 0; }
+    .skill-call-full summary:hover { color: var(--peko-blue); }
+    .skill-call-full-content { background: rgba(0, 0, 0, 0.2); padding: var(--space-sm); border-radius: var(--radius-sm); margin-top: var(--space-xs); white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.8rem; max-height: 400px; overflow-y: auto; }
     .hidden-messages-group { margin: var(--space-sm) 0; margin-left: var(--space-xl); max-width: calc(85% - var(--space-xl)); }
     .show-hidden-btn {
       display: inline-flex;

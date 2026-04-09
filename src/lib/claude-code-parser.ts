@@ -1,6 +1,6 @@
 import { homedir } from "node:os"
 import { join } from "node:path"
-import type { Message, SessionDetail, SessionSummary } from "./types"
+import type { Message, SessionDetail, SessionSummary, SkillCallMeta } from "./types"
 
 const CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects")
 
@@ -173,6 +173,30 @@ function isSystemMessage(content: string): boolean {
   return trimmed.startsWith("<")
 }
 
+/** Parse skill call content and extract metadata */
+function parseSkillCall(content: string): SkillCallMeta | null {
+  // Check if content contains skill call特征
+  if (!content.includes("Base directory for this skill:")) {
+    return null
+  }
+
+  // Extract skill name from path (last part after /skills/)
+  // Note: must use \/skills\/ to match the literal /skills/ path segment,
+  // not skills/ which could match agent-skills/skills/ incorrectly
+  const skillNameMatch = content.match(/\/skills\/([^\/\n]+)/)
+  const skillName = skillNameMatch ? skillNameMatch[1].trim() : "unknown"
+
+  // Extract user input (content after ARGUMENTS:)
+  const argsMatch = content.match(/ARGUMENTS:\s*([\s\S]*?)$/)
+  const userInput = argsMatch ? argsMatch[1].trim() : ""
+
+  return {
+    skillName,
+    userInput,
+    fullContent: content,
+  }
+}
+
 /** Extract message content */
 function extractMessageContent(message: unknown): string | null {
   if (!message || typeof message !== "object") return null
@@ -208,11 +232,14 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
 
   // If content is a string
   if (typeof msg.content === "string") {
+    const skillMeta = parseSkillCall(msg.content)
     messages.push({
       type: "user",
       content: msg.content,
       timestamp: ts,
       isSystemMessage: isSystemMessage(msg.content),
+      isSkillCall: skillMeta !== null,
+      skillMeta: skillMeta,
     })
     return messages
   }
@@ -221,11 +248,14 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
   if (Array.isArray(msg.content)) {
     for (const block of msg.content) {
       if (block.type === "text" && typeof block.text === "string") {
+        const skillMeta = parseSkillCall(block.text)
         messages.push({
           type: "user",
           content: block.text,
           timestamp: ts,
           isSystemMessage: isSystemMessage(block.text),
+          isSkillCall: skillMeta !== null,
+          skillMeta: skillMeta,
         })
       } else if (block.type === "tool_result") {
         const content =

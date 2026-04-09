@@ -260,6 +260,12 @@ interface MessageItemProps {
     content: string
     timestamp?: Date
     toolName?: string
+    isSkillCall?: boolean
+    skillMeta?: {
+      skillName: string
+      userInput: string
+      fullContent: string
+    }
   }
 }
 
@@ -270,6 +276,7 @@ function MessageItem({ message }: MessageItemProps) {
     tool_use: "yellow",
     tool_result: "magenta",
     thinking: "gray",
+    skill_call: "yellow",
   }
 
   const roleLabels: Record<string, string> = {
@@ -278,10 +285,37 @@ function MessageItem({ message }: MessageItemProps) {
     tool_use: "TOOL",
     tool_result: "RESULT",
     thinking: "THINK",
+    skill_call: "SKILL",
   }
 
   const color = roleColors[message.type] || "white"
   const label = roleLabels[message.type] || message.type.toUpperCase()
+
+  // Handle skill call messages specially
+  if (message.isSkillCall && message.skillMeta) {
+    const shortInput = message.skillMeta.userInput.replace(/\n/g, " ").slice(0, 60)
+    return (
+      <Box flexDirection="column" key={message.type}>
+        <Box>
+          <Box width={12}>
+            {message.timestamp && <Text dimColor>{formatTimestamp(message.timestamp)} </Text>}
+            <Text color={color} bold>
+              [{label}]
+            </Text>
+          </Box>
+          <Box flexShrink={1}>
+            <Text wrap="truncate" bold color="yellow">
+              调用Skill: {message.skillMeta.skillName}
+            </Text>
+          </Box>
+        </Box>
+        <Box paddingLeft={12}>
+          <Text dimColor>用户输入: {shortInput}</Text>
+          {message.skillMeta.userInput.length > 60 && <Text dimColor>...</Text>}
+        </Box>
+      </Box>
+    )
+  }
 
   const shortContent = message.content.replace(/\n/g, " ").slice(0, 80)
 

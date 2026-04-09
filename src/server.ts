@@ -30,6 +30,9 @@ export function startServer() {
       "/api/export/branch": {
         POST: apiHandlers.exportBranch,
       },
+      "/api/export/all": {
+        POST: apiHandlers.exportAllSessions,
+      },
     },
     development: {
       hmr: true,

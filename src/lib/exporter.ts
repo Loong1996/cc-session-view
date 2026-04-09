@@ -872,11 +872,11 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       if (isExpanded) {
         container.classList.remove('is-visible');
         btn.setAttribute('data-expanded', 'false');
-        countSpan.textContent = hiddenCount + '件のメッセージを表示';
+        countSpan.textContent = 'Show ' + hiddenCount + ' messages';
       } else {
         container.classList.add('is-visible');
         btn.setAttribute('data-expanded', 'true');
-        countSpan.textContent = hiddenCount + '件のメッセージを非表示';
+        countSpan.textContent = 'Hide ' + hiddenCount + ' messages';
       }
     }
   </script>
@@ -1117,7 +1117,7 @@ function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number
     <div class="hidden-messages-group" id="${groupId}">
       <button class="show-hidden-btn" onclick="toggleHiddenGroup('${groupId}')" data-expanded="false">
         <span class="hidden-icon">▶</span>
-        <span class="hidden-count">${hiddenCount}件のメッセージを表示</span>
+        <span class="hidden-count">Show ${hiddenCount} messages</span>
       </button>
       <div class="hidden-messages-container">
         ${middleHtml}
@@ -1462,11 +1462,11 @@ export function exportBranchToHtml(
       if (isExpanded) {
         container.classList.remove('is-visible');
         btn.setAttribute('data-expanded', 'false');
-        countSpan.textContent = hiddenCount + '件のメッセージを表示';
+        countSpan.textContent = 'Show ' + hiddenCount + ' messages';
       } else {
         container.classList.add('is-visible');
         btn.setAttribute('data-expanded', 'true');
-        countSpan.textContent = hiddenCount + '件のメッセージを非表示';
+        countSpan.textContent = 'Hide ' + hiddenCount + ' messages';
       }
     }
   </script>
@@ -1562,7 +1562,7 @@ function renderConsecutiveAssistantGroupForBranch(messages: Message[], startInde
     <div class="hidden-messages-group" id="${groupId}">
       <button class="show-hidden-btn" onclick="toggleHiddenGroup('${groupId}')" data-expanded="false">
         <span class="hidden-icon">▶</span>
-        <span class="hidden-count">${hiddenCount}件のメッセージを表示</span>
+        <span class="hidden-count">Show ${hiddenCount} messages</span>
       </button>
       <div class="hidden-messages-container">
         ${middleHtml}

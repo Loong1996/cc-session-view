@@ -183,8 +183,8 @@ export function App() {
           : exportToHtml(selectedSession, exportOptions)
 
     const ext = format === "text" ? "txt" : format === "markdown" ? "md" : "html"
-    const agentName = selectedSession.agentType === "claude-code" ? "claude" : "codex"
-    const filename = `session-${agentName}-${selectedSession.id.slice(0, 8)}.${ext}`
+    const dateStr = selectedSession.timestamp.toISOString().slice(0, 10)
+    const filename = `${selectedSession.agentType}--${dateStr}--${selectedSession.id}.${ext}`
     const exportDir = "./exported"
     const filepath = `${exportDir}/${filename}`
 
@@ -204,8 +204,8 @@ export function App() {
     if (!selectedSession) return
 
     const content = exportToHtml(selectedSession, exportOptions)
-    const agentName = selectedSession.agentType === "claude-code" ? "claude" : "codex"
-    const filename = `session-${agentName}-${selectedSession.id.slice(0, 8)}-${Date.now()}.html`
+    const dateStr = selectedSession.timestamp.toISOString().slice(0, 10)
+    const filename = `${selectedSession.agentType}--${dateStr}--${selectedSession.id}.html`
     const tmpDir = process.env.TMPDIR || "/tmp"
     const filepath = `${tmpDir}/${filename}`
 

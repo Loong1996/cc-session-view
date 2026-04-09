@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client"
 import "./styles.css"
 
 import { BranchDetailView } from "./components/BranchDetailView"
+import { ExportAllBar } from "./components/ExportAllBar"
 import { SearchFilterBar } from "./components/SearchFilterBar"
 import { SessionDetailView } from "./components/SessionDetailView"
 import { SessionListView } from "./components/SessionListView"
@@ -185,6 +186,17 @@ function App() {
   const [branchData, setBranchData] = useState<BranchSessionsData | null>(null)
   const [branchLoading, setBranchLoading] = useState(false)
   const [currentBranchName, setCurrentBranchName] = useState<string>("")
+
+  // Export all state
+  const [exportAllStatus, setExportAllStatus] = useState<"idle" | "loading" | "success" | "error">(
+    "idle",
+  )
+  const [exportAllResult, setExportAllResult] = useState<{
+    directory: string
+    totalCount: number
+    exportedCount: number
+    errors: Array<{ sessionId: string; error: string }>
+  } | null>(null)
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("")
@@ -392,7 +404,8 @@ function App() {
       const a = document.createElement("a")
       a.href = url
       const ext = format === "html" ? "html" : format === "markdown" ? "md" : "txt"
-      a.download = `session-${selectedSession.id.slice(0, 8)}.${ext}`
+      const dateStr = (sessionDetail?.timestamp ?? selectedSession.timestamp ?? "").slice(0, 10)
+      a.download = `${selectedSession.agentType}--${dateStr}--${selectedSession.id}.${ext}`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -400,6 +413,25 @@ function App() {
     } catch (error) {
       console.error("Export failed:", error)
       alert("Export failed")
+    }
+  }
+
+  // Handle export all sessions
+  const handleExportAll = async (format: "html" | "text" | "markdown") => {
+    setExportAllStatus("loading")
+    setExportAllResult(null)
+    try {
+      const res = await fetch("/api/export/all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format }),
+      })
+      if (!res.ok) throw new Error("Export failed")
+      const result = await res.json()
+      setExportAllResult(result)
+      setExportAllStatus("success")
+    } catch {
+      setExportAllStatus("error")
     }
   }
 
@@ -422,6 +454,11 @@ function App() {
             projects={projects}
             projectFilter={projectFilter}
             onProjectFilterChange={handleProjectFilterChange}
+          />
+          <ExportAllBar
+            onExportAll={handleExportAll}
+            status={exportAllStatus}
+            result={exportAllResult}
           />
           <SessionListView
             sessions={sessions}

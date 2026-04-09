@@ -1,3 +1,4 @@
+import { mkdir } from "node:fs/promises"
 import { listClaudeCodeSessions, loadClaudeCodeSession } from "../lib/claude-code-parser"
 import { listCodexSessions, loadCodexSession } from "../lib/codex-parser"
 import {
@@ -18,6 +19,7 @@ import type {
   FilterState,
   SessionSummary,
 } from "../lib/types"
+import { defaultExportOptions } from "../lib/types"
 
 // Cache for sessions
 let sessionsCache: {
@@ -206,7 +208,8 @@ export const apiHandlers = {
       const contentType =
         format === "html" ? "text/html" : format === "markdown" ? "text/markdown" : "text/plain"
       const ext = format === "html" ? "html" : format === "markdown" ? "md" : "txt"
-      const filename = `session-${sessionId.slice(0, 8)}.${ext}`
+      const dateStr = session.timestamp.toISOString().slice(0, 10)
+      const filename = `${agentType}--${dateStr}--${sessionId}.${ext}`
 
       return new Response(content, {
         headers: {
@@ -296,6 +299,97 @@ export const apiHandlers = {
     }
 
     return Response.json(serialized)
+  },
+
+  /** POST /api/export/all */
+  async exportAllSessions(req: Request): Promise<Response> {
+    try {
+      const body = await req.json()
+      const { format, options } = body as {
+        format: "html" | "text" | "markdown"
+        options?: Partial<ExportOptions>
+      }
+
+      if (!format) {
+        return Response.json({ error: "Missing format" }, { status: 400 })
+      }
+
+      const allSessions = await getAllSessions()
+      const allList: SessionSummary[] = [...allSessions.claudeCode, ...allSessions.codex]
+
+      // Create output directory
+      const now = new Date()
+      const dirTimestamp = now.toISOString().replace(/[-:T]/g, "").slice(0, 14)
+      const exportDir = `./exported/all-sessions-${dirTimestamp}`
+      await mkdir(exportDir, { recursive: true })
+
+      const exportOptions: ExportOptions = {
+        ...defaultExportOptions,
+        ...options,
+      }
+
+      const ext = format === "html" ? "html" : format === "markdown" ? "md" : "txt"
+      const errors: Array<{ sessionId: string; error: string }> = []
+      let exportedCount = 0
+
+      // Collect unique project subdirectories and create them upfront
+      const projectDirs = new Set<string>()
+      for (const s of allList) {
+        projectDirs.add(cwdToSubdir(s.cwd))
+      }
+      await Promise.all(
+        [...projectDirs].map((sub) => mkdir(`${exportDir}/${sub}`, { recursive: true })),
+      )
+
+      // Process in batches of 10
+      const BATCH_SIZE = 10
+      for (let i = 0; i < allList.length; i += BATCH_SIZE) {
+        const batch = allList.slice(i, i + BATCH_SIZE)
+        await Promise.all(
+          batch.map(async (s) => {
+            try {
+              const session =
+                s.agentType === "claude-code"
+                  ? await loadClaudeCodeSession(s.filePath)
+                  : await loadCodexSession(s.filePath)
+
+              if (!session) {
+                errors.push({ sessionId: s.id, error: "Failed to load session" })
+                return
+              }
+
+              const content =
+                format === "html"
+                  ? exportToHtml(session, exportOptions)
+                  : format === "markdown"
+                    ? exportToMarkdown(session, exportOptions)
+                    : exportToText(session, exportOptions)
+
+              const dateStr = s.timestamp.toISOString().slice(0, 10)
+              const filename = `${s.agentType}--${dateStr}--${s.id}.${ext}`
+              const subdir = cwdToSubdir(s.cwd)
+              await Bun.write(`${exportDir}/${subdir}/${filename}`, content)
+              exportedCount++
+            } catch (e) {
+              errors.push({
+                sessionId: s.id,
+                error: e instanceof Error ? e.message : "Unknown error",
+              })
+            }
+          }),
+        )
+      }
+
+      return Response.json({
+        directory: exportDir,
+        totalCount: allList.length,
+        exportedCount,
+        errors,
+      })
+    } catch (error) {
+      console.error("Export all error:", error)
+      return Response.json({ error: "Export all failed" }, { status: 500 })
+    }
   },
 
   /** POST /api/export/branch */
@@ -410,6 +504,15 @@ export const apiHandlers = {
       return Response.json({ error: "Branch export failed" }, { status: 500 })
     }
   },
+}
+
+/** Convert session cwd to a safe subdirectory name for export */
+function cwdToSubdir(cwd: string | undefined): string {
+  if (!cwd) return "_unknown"
+  // Use the last directory component as the project name, sanitize for filesystem
+  const parts = cwd.split("/").filter(Boolean)
+  const projectName = parts[parts.length - 1] || "_unknown"
+  return projectName.replace(/[/\\?%*:|"<>]/g, "-")
 }
 
 /** Sort branch messages with multi-level tiebreaker for stable ordering */

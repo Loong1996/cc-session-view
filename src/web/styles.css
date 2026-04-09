@@ -239,6 +239,70 @@ body::before {
   border-color: var(--peko-blue);
 }
 
+/* === EXPORT ALL === */
+.export-all-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--bg-surface);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.export-all-row {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.export-all-row .filter-select {
+  flex: 1;
+}
+
+.export-all-row .action-btn {
+  white-space: nowrap;
+}
+
+.export-all-row .action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.export-all-result {
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.export-all-result.success {
+  background: var(--leaf-green-light);
+  border-left: 3px solid var(--leaf-green);
+  color: var(--text-primary);
+}
+
+.export-all-result.error {
+  background: var(--peko-pink-light);
+  border-left: 3px solid var(--peko-pink-deep);
+  color: var(--text-primary);
+}
+
+.export-all-path {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-top: 2px;
+}
+
+.export-all-warning {
+  color: var(--carrot-orange);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 /* === SESSION LIST === */
 .session-list {
   flex: 1;

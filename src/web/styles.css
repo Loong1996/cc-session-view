@@ -59,7 +59,8 @@ body {
   background: var(--bg-base);
   color: var(--text-primary);
   line-height: 1.6;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -81,7 +82,8 @@ body::before {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .header {
@@ -164,21 +166,25 @@ body::before {
 /* === MAIN CONTENT === */
 .main {
   flex: 1;
+  min-height: 0;
   display: flex;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
   padding: var(--space-lg);
   gap: var(--space-lg);
+  overflow: hidden;
 }
 
 /* === SIDEBAR (Session List) === */
 .sidebar {
   width: 400px;
   flex-shrink: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  overflow: hidden;
 }
 
 /* === FILTERS === */
@@ -306,11 +312,11 @@ body::before {
 /* === SESSION LIST === */
 .session-list {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   overflow-y: auto;
-  max-height: calc(100vh - 250px);
   padding-right: var(--space-sm);
 }
 
@@ -504,10 +510,12 @@ body::before {
 }
 
 .messages-toolbar {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--border-light);
   flex-wrap: wrap;
 }
 

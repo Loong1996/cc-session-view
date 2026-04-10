@@ -291,47 +291,48 @@ export function SessionDetailView({
 
       {showStats && <SessionStats messages={session.messages} />}
 
-      <div className="messages-container">
-        <div className="messages-toolbar">
-          <div className="message-count">{filteredMessages.length} messages</div>
-          <div className="message-search">
-            <input
-              type="text"
-              className="message-search-input"
-              placeholder="Search messages..."
-              value={messageSearch}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-            />
-            {messageSearch.trim() && (
-              <div className="message-search-nav">
-                <span className="message-search-count">
-                  {matchIndices.length > 0
-                    ? `${currentMatchIndex + 1}/${matchIndices.length}`
-                    : "0/0"}
-                </span>
-                <button
-                  type="button"
-                  className="message-search-btn"
-                  onClick={handlePrevMatch}
-                  disabled={matchIndices.length === 0}
-                  title="Previous (Shift+Enter)"
-                >
-                  ▲
-                </button>
-                <button
-                  type="button"
-                  className="message-search-btn"
-                  onClick={handleNextMatch}
-                  disabled={matchIndices.length === 0}
-                  title="Next (Enter)"
-                >
-                  ▼
-                </button>
-              </div>
-            )}
-          </div>
+      <div className="messages-toolbar">
+        <div className="message-count">{filteredMessages.length} messages</div>
+        <div className="message-search">
+          <input
+            type="text"
+            className="message-search-input"
+            placeholder="Search messages..."
+            value={messageSearch}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+          />
+          {messageSearch.trim() && (
+            <div className="message-search-nav">
+              <span className="message-search-count">
+                {matchIndices.length > 0
+                  ? `${currentMatchIndex + 1}/${matchIndices.length}`
+                  : "0/0"}
+              </span>
+              <button
+                type="button"
+                className="message-search-btn"
+                onClick={handlePrevMatch}
+                disabled={matchIndices.length === 0}
+                title="Previous (Shift+Enter)"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                className="message-search-btn"
+                onClick={handleNextMatch}
+                disabled={matchIndices.length === 0}
+                title="Next (Enter)"
+              >
+                ▼
+              </button>
+            </div>
+          )}
         </div>
+      </div>
+
+      <div className="messages-container">
         <MessageRenderer
           messages={filteredMessages}
           showSkillFullContent={includeSkillFullContent}

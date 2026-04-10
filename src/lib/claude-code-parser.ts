@@ -178,13 +178,13 @@ const CONTEXT_SUMMARY_MARKER =
 
 /** Check if content is a context compaction summary */
 function isContextSummary(content: string): boolean {
-  return content.includes(CONTEXT_SUMMARY_MARKER)
+  return content.trimStart().startsWith(CONTEXT_SUMMARY_MARKER)
 }
 
 /** Parse skill call content and extract metadata */
 function parseSkillCall(content: string): SkillCallMeta | null {
-  // Check if content contains skill call特征
-  if (!content.includes("Base directory for this skill:")) {
+  // Check if content starts with skill call marker
+  if (!content.trimStart().startsWith("Base directory for this skill:")) {
     return null
   }
 

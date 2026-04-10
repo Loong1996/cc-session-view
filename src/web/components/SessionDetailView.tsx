@@ -38,6 +38,7 @@ interface ExportOptions {
   includeThinking: boolean
   includeSystemMessages: boolean
   includeSkillFullContent: boolean
+  includeContextSummary: boolean
 }
 
 interface SessionDetailViewProps {
@@ -57,6 +58,7 @@ export function SessionDetailView({
   const [showSystemMessages, setShowSystemMessages] = useState(false)
   const [showThinkingMessages, setShowThinkingMessages] = useState(false)
   const [includeSkillFullContent, setIncludeSkillFullContent] = useState(false)
+  const [showContextSummary, setShowContextSummary] = useState(false)
 
   if (loading) {
     return <div className="loading">Loading...</div>
@@ -66,6 +68,8 @@ export function SessionDetailView({
 
   // Filter messages based on toggles
   const filteredMessages = session.messages.filter((m) => {
+    // Filter context summary messages (hide by default)
+    if (m.isContextSummary && !showContextSummary) return false
     // Filter system messages (hide by default)
     if (m.isSystemMessage && !showSystemMessages) return false
     // Filter tool messages
@@ -159,6 +163,14 @@ export function SessionDetailView({
               <span className="chip-icon">📜</span>
               <span>Skill Full</span>
             </button>
+            <button
+              type="button"
+              className={`toggle-chip ${showContextSummary ? "active" : ""}`}
+              onClick={() => setShowContextSummary(!showContextSummary)}
+            >
+              <span className="chip-icon">📋</span>
+              <span>Context Summary</span>
+            </button>
           </div>
           <button
             type="button"
@@ -171,6 +183,7 @@ export function SessionDetailView({
                 includeThinking: showThinkingMessages,
                 includeSystemMessages: showSystemMessages,
                 includeSkillFullContent,
+                includeContextSummary: showContextSummary,
               })
             }
           >
@@ -187,6 +200,7 @@ export function SessionDetailView({
                 includeThinking: showThinkingMessages,
                 includeSystemMessages: showSystemMessages,
                 includeSkillFullContent,
+                includeContextSummary: showContextSummary,
               })
             }
           >
@@ -203,6 +217,7 @@ export function SessionDetailView({
                 includeThinking: showThinkingMessages,
                 includeSystemMessages: showSystemMessages,
                 includeSkillFullContent,
+                includeContextSummary: showContextSummary,
               })
             }
           >

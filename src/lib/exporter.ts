@@ -1191,7 +1191,9 @@ function renderConsecutiveAssistantGroup(messages: Message[], startIndex: number
 
 function filterMessages(messages: Message[], options: ExportOptions): Message[] {
   return messages.filter((msg) => {
-    // Filter system messages first
+    // Filter context summary messages
+    if (msg.isContextSummary && !options.includeContextSummary) return false
+    // Filter system messages
     if (msg.isSystemMessage && !options.includeSystemMessages) return false
     if (msg.type === "user" && !options.includeUser) return false
     if (msg.type === "assistant" && !options.includeAssistant) return false

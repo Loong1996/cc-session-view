@@ -381,6 +381,7 @@ function App() {
     includeThinking: boolean
     includeSystemMessages: boolean
     includeSkillFullContent: boolean
+    includeContextSummary: boolean
   }
 
   const handleExport = async (format: "html" | "text" | "markdown", options: ExportOptions) => {

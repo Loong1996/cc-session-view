@@ -196,6 +196,7 @@ export const apiHandlers = {
         includeThinking: options?.includeThinking ?? false,
         includeSystemMessages: options?.includeSystemMessages ?? false,
         includeSkillFullContent: options?.includeSkillFullContent ?? false,
+        includeContextSummary: options?.includeContextSummary ?? false,
       }
 
       // Export
@@ -478,6 +479,7 @@ export const apiHandlers = {
         includeThinking: options?.includeThinking ?? false,
         includeSystemMessages: options?.includeSystemMessages ?? false,
         includeSkillFullContent: options?.includeSkillFullContent ?? false,
+        includeContextSummary: options?.includeContextSummary ?? false,
       }
 
       // Export

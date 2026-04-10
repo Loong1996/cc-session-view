@@ -39,10 +39,13 @@ export function filterSessions(sessions: SessionSummary[], filter: FilterState):
   if (filter.searchQuery.trim()) {
     const query = filter.searchQuery.toLowerCase()
     result = result.filter((session) => {
+      const id = session.id.toLowerCase()
       const title = session.title.toLowerCase()
       const cwd = session.cwd?.toLowerCase() ?? ""
       const branch = session.gitBranch?.toLowerCase() ?? ""
-      return title.includes(query) || cwd.includes(query) || branch.includes(query)
+      return (
+        id.includes(query) || title.includes(query) || cwd.includes(query) || branch.includes(query)
+      )
     })
   }
 

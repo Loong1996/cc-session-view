@@ -16,6 +16,7 @@ interface Message {
   isSystemMessage?: boolean
   isSkillCall?: boolean
   skillMeta?: SkillCallMeta
+  isContextSummary?: boolean
 }
 
 interface SessionDetail {

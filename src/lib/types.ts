@@ -49,6 +49,7 @@ export interface Message {
   isSystemMessage?: boolean // System messages (e.g., <system-reminder>, <environment>)
   isSkillCall?: boolean // Skill call messages
   skillMeta?: SkillCallMeta // Parsed skill call metadata
+  isContextSummary?: boolean // Context compaction summary message
 }
 
 /** Session detail information */

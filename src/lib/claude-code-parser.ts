@@ -173,6 +173,14 @@ function isSystemMessage(content: string): boolean {
   return trimmed.startsWith("<")
 }
 
+const CONTEXT_SUMMARY_MARKER =
+  "This session is being continued from a previous conversation that ran out of context."
+
+/** Check if content is a context compaction summary */
+function isContextSummary(content: string): boolean {
+  return content.includes(CONTEXT_SUMMARY_MARKER)
+}
+
 /** Parse skill call content and extract metadata */
 function parseSkillCall(content: string): SkillCallMeta | null {
   // Check if content contains skill call特征
@@ -240,6 +248,7 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
       isSystemMessage: isSystemMessage(msg.content),
       isSkillCall: skillMeta !== null,
       skillMeta: skillMeta,
+      isContextSummary: isContextSummary(msg.content),
     })
     return messages
   }
@@ -256,6 +265,7 @@ function extractUserMessages(record: Record<string, unknown>): Message[] {
           isSystemMessage: isSystemMessage(block.text),
           isSkillCall: skillMeta !== null,
           skillMeta: skillMeta,
+          isContextSummary: isContextSummary(block.text),
         })
       } else if (block.type === "tool_result") {
         const content =

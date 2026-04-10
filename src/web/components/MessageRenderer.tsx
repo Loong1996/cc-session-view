@@ -15,6 +15,7 @@ interface Message {
   toolId?: string
   isSkillCall?: boolean
   skillMeta?: SkillCallMeta
+  isContextSummary?: boolean
 }
 
 interface MessageRendererProps {
@@ -79,10 +80,12 @@ function SingleMessage({
     return <SkillCallMessage message={message} showFullContent={showSkillFullContent} />
   }
 
+  const extraClass = message.isContextSummary ? " context-summary" : ""
+
   return (
-    <article className={`message ${typeClass}`}>
+    <article className={`message ${typeClass}${extraClass}`}>
       <div className="msg-indicator" title={getMessageLabel(message.type)}>
-        <span className="msg-abbr">{abbr}</span>
+        <span className="msg-abbr">{message.isContextSummary ? "📋" : abbr}</span>
       </div>
       <div className="msg-main">
         <div className="msg-meta">

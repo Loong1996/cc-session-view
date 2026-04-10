@@ -122,8 +122,15 @@ export function exportToMarkdown(session: SessionDetail, options: ExportOptions)
       continue
     }
 
-    lines.push(`### ${icon} ${label}${timeSuffix}`)
-    lines.push("")
+    if (msg.isContextSummary) {
+      lines.push(`### 📋 Context Summary${timeSuffix}`)
+      lines.push("")
+      lines.push("> *Continued from previous conversation (context compaction)*")
+      lines.push("")
+    } else {
+      lines.push(`### ${icon} ${label}${timeSuffix}`)
+      lines.push("")
+    }
     if (msg.toolName) {
       lines.push(`> Tool: ${msg.toolName}`)
       lines.push("")
@@ -642,6 +649,32 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
       overflow-y: auto;
     }
 
+    /* === CONTEXT SUMMARY === */
+    .msg.context-summary {
+      margin-left: auto;
+      margin-right: auto;
+      max-width: 90%;
+      flex-direction: column;
+      align-items: center;
+    }
+    .msg.context-summary .msg-indicator { display: none; }
+    .msg.context-summary .msg-main { width: 100%; }
+    .msg.context-summary .msg-text {
+      background: rgba(139, 92, 246, 0.08);
+      border-left: 3px solid #8b5cf6;
+      border-right: 3px solid #8b5cf6;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+    }
+    .msg.context-summary .msg-text::before {
+      content: "📋 Context Summary (continued from previous conversation)";
+      display: block;
+      font-weight: bold;
+      color: #8b5cf6;
+      margin-bottom: var(--space-sm);
+      font-family: var(--font-sans);
+    }
+
     /* === HIDDEN MESSAGES GROUP === */
     .hidden-messages-group {
       margin: var(--space-sm) 0;
@@ -965,10 +998,12 @@ function renderSingleMessage(msg: Message, i: number, options?: ExportOptions): 
     return renderSkillCallMessage(msg, i, options)
   }
 
+  const extraClass = msg.isContextSummary ? " context-summary" : ""
+
   return `
-    <article class="msg ${typeClass}" id="msg-${i}">
+    <article class="msg ${typeClass}${extraClass}" id="msg-${i}">
       <div class="msg-indicator" title="${typeLabel}">
-        <span class="msg-abbr">${typeAbbr}</span>
+        <span class="msg-abbr">${msg.isContextSummary ? "📋" : typeAbbr}</span>
       </div>
       <div class="msg-main">
         <div class="msg-meta">
@@ -1899,6 +1934,11 @@ function getBranchHtmlStyles(): string {
     .skill-call-full summary { cursor: pointer; color: var(--text-muted); font-size: 0.85rem; padding: var(--space-xs) 0; }
     .skill-call-full summary:hover { color: var(--peko-blue); }
     .skill-call-full-content { background: rgba(0, 0, 0, 0.2); padding: var(--space-sm); border-radius: var(--radius-sm); margin-top: var(--space-xs); white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.8rem; max-height: 400px; overflow-y: auto; }
+    .msg.context-summary { margin-left: auto; margin-right: auto; max-width: 90%; flex-direction: column; align-items: center; }
+    .msg.context-summary .msg-indicator { display: none; }
+    .msg.context-summary .msg-main { width: 100%; }
+    .msg.context-summary .msg-text { background: rgba(139, 92, 246, 0.08); border-left: 3px solid #8b5cf6; border-right: 3px solid #8b5cf6; border-radius: var(--radius-md); font-size: 0.85rem; }
+    .msg.context-summary .msg-text::before { content: "📋 Context Summary (continued from previous conversation)"; display: block; font-weight: bold; color: #8b5cf6; margin-bottom: var(--space-sm); font-family: var(--font-sans); }
     .hidden-messages-group { margin: var(--space-sm) 0; margin-left: var(--space-xl); max-width: calc(85% - var(--space-xl)); }
     .show-hidden-btn {
       display: inline-flex;

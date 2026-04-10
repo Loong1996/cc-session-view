@@ -31,10 +31,8 @@ bun install
 
 | Command | Description |
 |---------|-------------|
-| `bun run start` | Start in TUI mode |
-| `bun run dev` | TUI mode with auto-restart on file changes |
-| `bun run web` | Start web server mode |
-| `bun run web:dev` | Web server mode with HMR enabled |
+| `bun run start` | Start web server |
+| `bun run dev` | Web server with HMR enabled |
 
 ### Code Quality
 
@@ -51,38 +49,35 @@ bun install
 
 ```
 src/
-├── index.tsx           # Entry point (TUI/Web mode switch)
-├── App.tsx             # TUI main application
-├── server.ts           # Web server
+├── index.tsx           # Entry point (starts web server)
+├── server.ts           # Web server (Bun.serve)
 ├── api/
 │   └── handlers.ts     # API handlers
-├── components/         # TUI Ink components
-│   ├── SessionList.tsx
-│   ├── SessionDetail.tsx
-│   ├── SessionPreview.tsx
-│   ├── FilterBar.tsx
-│   ├── SearchBar.tsx
-│   ├── TabSelector.tsx
-│   └── ...
-├── hooks/
-│   └── usePreviewSession.ts
 ├── lib/                # Utilities and parsers
 │   ├── types.ts        # Type definitions
 │   ├── claude-code-parser.ts  # Claude Code session parser
 │   ├── codex-parser.ts # Codex CLI session parser
-│   ├── exporter.ts     # Export functionality
+│   ├── exporter.ts     # Export functionality (HTML/text/markdown)
 │   ├── filter.ts       # Filtering logic
-│   └── ...
+│   └── format.ts       # Timestamp formatting
 └── web/                # Web UI
-    ├── frontend.tsx    # React frontend
-    └── components/     # Web components
+    ├── index.html      # HTML entry point
+    ├── frontend.tsx     # React frontend app
+    ├── styles.css       # Styles
+    └── components/      # React DOM components
+        ├── SessionListView.tsx
+        ├── SessionDetailView.tsx
+        ├── MessageRenderer.tsx
+        ├── BranchDetailView.tsx
+        ├── SearchFilterBar.tsx
+        ├── ExportAllBar.tsx
+        └── TabBar.tsx
 ```
 
 ## Tech Stack
 
 - **Runtime**: Bun
-- **TUI**: React + [Ink](https://github.com/vadimdemedes/ink)
-- **Web**: Bun.serve + React
+- **Web**: Bun.serve + React DOM
 - **Linter/Formatter**: [Biome](https://biomejs.dev/)
 - **Git Hooks**: [Lefthook](https://github.com/evilmartians/lefthook)
 
@@ -109,59 +104,6 @@ To manually reconfigure:
 bun run prepare
 ```
 
-### Manual Setup (New Project)
-
-If you want to set up Lefthook in a new project from scratch:
-
-1. Install Lefthook as a dev dependency:
-
-```bash
-bun add -d lefthook
-```
-
-2. Create `lefthook.yml` in the project root:
-
-```yaml
-pre-commit:
-  parallel: true
-  commands:
-    biome-check:
-      glob: "*.{js,ts,jsx,tsx,json}"
-      run: bunx biome check --staged --no-errors-on-unmatched --colors=off
-      stage_fixed: true
-    biome-format:
-      glob: "*.{js,ts,jsx,tsx,json}"
-      run: bunx biome format --staged --no-errors-on-unmatched --write --colors=off
-      stage_fixed: true
-```
-
-3. Add the prepare script to `package.json`:
-
-```json
-{
-  "scripts": {
-    "prepare": "lefthook install"
-  }
-}
-```
-
-4. Install the git hooks:
-
-```bash
-bun run prepare
-```
-
-### Configuration Options
-
-| Option | Description |
-|--------|-------------|
-| `parallel` | Run commands in parallel |
-| `glob` | File patterns to match |
-| `run` | Command to execute |
-| `stage_fixed` | Automatically stage files fixed by the command |
-| `--staged` | Only check staged files |
-| `--no-errors-on-unmatched` | Don't error if no files match |
-
 ### Skipping Hooks
 
 To skip pre-commit hooks temporarily:
@@ -172,11 +114,6 @@ git commit --no-verify -m "commit message"
 
 ## Architecture
 
-### Operating Modes
-
-1. **TUI Mode** (`bun run start`): Interactive terminal UI using Ink
-2. **Web Mode** (`bun run web`): Browser-accessible web interface
-
 ### Session Data
 
 Session data is loaded from the following directories:
@@ -186,4 +123,6 @@ Session data is loaded from the following directories:
 
 ### Export
 
-Exported files are saved to the `./exported/` directory.
+- **Single session**: Downloaded from the browser as HTML/text/markdown
+- **Bulk export**: Saved to `./exported/all-sessions-{timestamp}/` directory, organized by project subdirectories
+- **File naming**: `{agentType}--{YYYY-MM-DD}--{session_id}.{ext}`

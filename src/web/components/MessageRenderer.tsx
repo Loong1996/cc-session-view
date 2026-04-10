@@ -21,6 +21,8 @@ interface Message {
 interface MessageRendererProps {
   messages: Message[]
   showSkillFullContent?: boolean
+  searchQuery?: string
+  highlightedMessageIndex?: number
 }
 
 interface MessageGroup {
@@ -29,7 +31,12 @@ interface MessageGroup {
   startIndex: number
 }
 
-export function MessageRenderer({ messages, showSkillFullContent }: MessageRendererProps) {
+export function MessageRenderer({
+  messages,
+  showSkillFullContent,
+  searchQuery,
+  highlightedMessageIndex,
+}: MessageRendererProps) {
   const groups = useMemo(() => groupConsecutiveAssistantMessages(messages), [messages])
 
   return (
@@ -40,7 +47,10 @@ export function MessageRenderer({ messages, showSkillFullContent }: MessageRende
             <SingleMessage
               key={`msg-${group.startIndex}`}
               message={group.messages[0]!}
+              messageIndex={group.startIndex}
               showSkillFullContent={showSkillFullContent}
+              searchQuery={searchQuery}
+              isHighlighted={highlightedMessageIndex === group.startIndex}
             />
           )
         }
@@ -50,6 +60,8 @@ export function MessageRenderer({ messages, showSkillFullContent }: MessageRende
             messages={group.messages}
             startIndex={group.startIndex}
             showSkillFullContent={showSkillFullContent}
+            searchQuery={searchQuery}
+            highlightedMessageIndex={highlightedMessageIndex}
           />
         )
       })}
@@ -57,12 +69,54 @@ export function MessageRenderer({ messages, showSkillFullContent }: MessageRende
   )
 }
 
+function HighlightedText({ text, query }: { text: string; query?: string }) {
+  if (!query?.trim()) return <>{text}</>
+
+  const lowerText = text.toLowerCase()
+  const lowerQuery = query.toLowerCase()
+  const parts: Array<{ text: string; highlight: boolean }> = []
+  let lastIndex = 0
+
+  let pos = lowerText.indexOf(lowerQuery, lastIndex)
+  while (pos !== -1) {
+    if (pos > lastIndex) {
+      parts.push({ text: text.slice(lastIndex, pos), highlight: false })
+    }
+    parts.push({ text: text.slice(pos, pos + query.length), highlight: true })
+    lastIndex = pos + query.length
+    pos = lowerText.indexOf(lowerQuery, lastIndex)
+  }
+  if (lastIndex < text.length) {
+    parts.push({ text: text.slice(lastIndex), highlight: false })
+  }
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.highlight ? (
+          <mark key={i} className="search-highlight">
+            {part.text}
+          </mark>
+        ) : (
+          <span key={i}>{part.text}</span>
+        ),
+      )}
+    </>
+  )
+}
+
 function SingleMessage({
   message,
+  messageIndex,
   showSkillFullContent,
+  searchQuery,
+  isHighlighted,
 }: {
   message: Message
+  messageIndex: number
   showSkillFullContent?: boolean
+  searchQuery?: string
+  isHighlighted?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const isLong = message.content.length > 800
@@ -77,13 +131,23 @@ function SingleMessage({
 
   // Render skill call messages specially
   if (message.isSkillCall && message.skillMeta) {
-    return <SkillCallMessage message={message} showFullContent={showSkillFullContent} />
+    return (
+      <SkillCallMessage
+        message={message}
+        messageIndex={messageIndex}
+        showFullContent={showSkillFullContent}
+      />
+    )
   }
 
   const extraClass = message.isContextSummary ? " context-summary" : ""
+  const highlightClass = isHighlighted ? " search-active" : ""
 
   return (
-    <article className={`message ${typeClass}${extraClass}`}>
+    <article
+      className={`message ${typeClass}${extraClass}${highlightClass}`}
+      data-msg-index={messageIndex}
+    >
       <div className="msg-indicator" title={getMessageLabel(message.type)}>
         <span className="msg-abbr">{message.isContextSummary ? "📋" : abbr}</span>
       </div>
@@ -102,7 +166,9 @@ function SingleMessage({
           )}
         </div>
         <div className={`msg-text ${isLong && !expanded ? "collapsed" : ""}`}>
-          <pre>{message.content}</pre>
+          <pre>
+            <HighlightedText text={message.content} query={searchQuery} />
+          </pre>
         </div>
       </div>
     </article>
@@ -111,9 +177,11 @@ function SingleMessage({
 
 function SkillCallMessage({
   message,
+  messageIndex,
   showFullContent,
 }: {
   message: Message
+  messageIndex: number
   showFullContent?: boolean
 }) {
   const meta = message.skillMeta!
@@ -128,7 +196,7 @@ function SkillCallMessage({
   const abbr = getMessageAbbr(message.type)
 
   return (
-    <article className={`message ${typeClass} skill-call`}>
+    <article className={`message ${typeClass} skill-call`} data-msg-index={messageIndex}>
       <div className="msg-indicator" title={getMessageLabel(message.type)}>
         <span className="msg-abbr">{abbr}</span>
       </div>
@@ -158,10 +226,14 @@ function ConsecutiveAssistantGroup({
   messages,
   startIndex,
   showSkillFullContent,
+  searchQuery,
+  highlightedMessageIndex,
 }: {
   messages: Message[]
   startIndex: number
   showSkillFullContent?: boolean
+  searchQuery?: string
+  highlightedMessageIndex?: number
 }) {
   const [showHidden, setShowHidden] = useState(false)
   const hiddenCount = messages.length - 2
@@ -171,7 +243,13 @@ function ConsecutiveAssistantGroup({
 
   return (
     <>
-      <SingleMessage message={firstMsg} showSkillFullContent={showSkillFullContent} />
+      <SingleMessage
+        message={firstMsg}
+        messageIndex={startIndex}
+        showSkillFullContent={showSkillFullContent}
+        searchQuery={searchQuery}
+        isHighlighted={highlightedMessageIndex === startIndex}
+      />
 
       <div className="hidden-messages-group">
         <button
@@ -189,13 +267,22 @@ function ConsecutiveAssistantGroup({
             <SingleMessage
               key={`hidden-${startIndex + 1 + idx}`}
               message={msg}
+              messageIndex={startIndex + 1 + idx}
               showSkillFullContent={showSkillFullContent}
+              searchQuery={searchQuery}
+              isHighlighted={highlightedMessageIndex === startIndex + 1 + idx}
             />
           ))}
         </div>
       </div>
 
-      <SingleMessage message={lastMsg} showSkillFullContent={showSkillFullContent} />
+      <SingleMessage
+        message={lastMsg}
+        messageIndex={startIndex + messages.length - 1}
+        showSkillFullContent={showSkillFullContent}
+        searchQuery={searchQuery}
+        isHighlighted={highlightedMessageIndex === startIndex + messages.length - 1}
+      />
     </>
   )
 }

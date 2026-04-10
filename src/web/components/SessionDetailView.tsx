@@ -1,5 +1,6 @@
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { MessageRenderer } from "./MessageRenderer"
+import { SessionStats } from "./SessionStats"
 
 interface SkillCallMeta {
   skillName: string
@@ -59,6 +60,54 @@ export function SessionDetailView({
   const [showThinkingMessages, setShowThinkingMessages] = useState(false)
   const [includeSkillFullContent, setIncludeSkillFullContent] = useState(false)
   const [showContextSummary, setShowContextSummary] = useState(false)
+  const [showStats, setShowStats] = useState(false)
+
+  // Message search state
+  const [messageSearch, setMessageSearch] = useState("")
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
+
+  // Filter messages based on toggles
+  const filteredMessages = useMemo(
+    () =>
+      session.messages.filter((m) => {
+        if (m.isContextSummary && !showContextSummary) return false
+        if (m.isSystemMessage && !showSystemMessages) return false
+        if (!showToolMessages && (m.type === "tool_use" || m.type === "tool_result")) return false
+        if (!showThinkingMessages && m.type === "thinking") return false
+        return true
+      }),
+    [
+      session.messages,
+      showContextSummary,
+      showSystemMessages,
+      showToolMessages,
+      showThinkingMessages,
+    ],
+  )
+
+  // Count search matches
+  const matchIndices = useMemo(() => {
+    if (!messageSearch.trim()) return []
+    const query = messageSearch.toLowerCase()
+    const indices: number[] = []
+    filteredMessages.forEach((m, i) => {
+      if (m.content.toLowerCase().includes(query)) {
+        indices.push(i)
+      }
+    })
+    return indices
+  }, [filteredMessages, messageSearch])
+
+  // Auto-scroll to first match when search changes
+  useEffect(() => {
+    if (matchIndices.length > 0 && messageSearch.trim()) {
+      const timer = setTimeout(() => {
+        const el = document.querySelector(`[data-msg-index="${matchIndices[0]}"]`)
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [matchIndices, messageSearch])
 
   if (loading) {
     return <div className="loading">Loading...</div>
@@ -66,18 +115,54 @@ export function SessionDetailView({
 
   const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI"
 
-  // Filter messages based on toggles
-  const filteredMessages = session.messages.filter((m) => {
-    // Filter context summary messages (hide by default)
-    if (m.isContextSummary && !showContextSummary) return false
-    // Filter system messages (hide by default)
-    if (m.isSystemMessage && !showSystemMessages) return false
-    // Filter tool messages
-    if (!showToolMessages && (m.type === "tool_use" || m.type === "tool_result")) return false
-    // Filter thinking/reasoning messages
-    if (!showThinkingMessages && m.type === "thinking") return false
-    return true
-  })
+  const scrollToMatch = (messageIndex: number) => {
+    const el = document.querySelector(`[data-msg-index="${messageIndex}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }
+
+  const handleSearchChange = (value: string) => {
+    setMessageSearch(value)
+    setCurrentMatchIndex(0)
+  }
+
+  const handlePrevMatch = () => {
+    if (matchIndices.length === 0) return
+    const next = (currentMatchIndex - 1 + matchIndices.length) % matchIndices.length
+    setCurrentMatchIndex(next)
+    scrollToMatch(matchIndices[next]!)
+  }
+
+  const handleNextMatch = () => {
+    if (matchIndices.length === 0) return
+    const next = (currentMatchIndex + 1) % matchIndices.length
+    setCurrentMatchIndex(next)
+    scrollToMatch(matchIndices[next]!)
+  }
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (e.shiftKey) {
+        handlePrevMatch()
+      } else {
+        handleNextMatch()
+      }
+    }
+    if (e.key === "Escape") {
+      setMessageSearch("")
+    }
+  }
+
+  const exportOptions: ExportOptions = {
+    includeUser: true,
+    includeAssistant: true,
+    includeToolUse: showToolMessages,
+    includeThinking: showThinkingMessages,
+    includeSystemMessages: showSystemMessages,
+    includeSkillFullContent,
+    includeContextSummary: showContextSummary,
+  }
 
   return (
     <>
@@ -171,65 +256,89 @@ export function SessionDetailView({
               <span className="chip-icon">📋</span>
               <span>Context Summary</span>
             </button>
+            <button
+              type="button"
+              className={`toggle-chip ${showStats ? "active" : ""}`}
+              onClick={() => setShowStats(!showStats)}
+            >
+              <span className="chip-icon">📊</span>
+              <span>Stats</span>
+            </button>
           </div>
           <button
             type="button"
             className="action-btn"
-            onClick={() =>
-              onExport("html", {
-                includeUser: true,
-                includeAssistant: true,
-                includeToolUse: showToolMessages,
-                includeThinking: showThinkingMessages,
-                includeSystemMessages: showSystemMessages,
-                includeSkillFullContent,
-                includeContextSummary: showContextSummary,
-              })
-            }
+            onClick={() => onExport("html", exportOptions)}
           >
             📄 HTML
           </button>
           <button
             type="button"
             className="action-btn"
-            onClick={() =>
-              onExport("text", {
-                includeUser: true,
-                includeAssistant: true,
-                includeToolUse: showToolMessages,
-                includeThinking: showThinkingMessages,
-                includeSystemMessages: showSystemMessages,
-                includeSkillFullContent,
-                includeContextSummary: showContextSummary,
-              })
-            }
+            onClick={() => onExport("text", exportOptions)}
           >
             📝 Text
           </button>
           <button
             type="button"
             className="action-btn"
-            onClick={() =>
-              onExport("markdown", {
-                includeUser: true,
-                includeAssistant: true,
-                includeToolUse: showToolMessages,
-                includeThinking: showThinkingMessages,
-                includeSystemMessages: showSystemMessages,
-                includeSkillFullContent,
-                includeContextSummary: showContextSummary,
-              })
-            }
+            onClick={() => onExport("markdown", exportOptions)}
           >
             📋 Markdown
           </button>
         </div>
       </div>
+
+      {showStats && <SessionStats messages={session.messages} />}
+
       <div className="messages-container">
-        <div className="message-count">{filteredMessages.length} messages</div>
+        <div className="messages-toolbar">
+          <div className="message-count">{filteredMessages.length} messages</div>
+          <div className="message-search">
+            <input
+              type="text"
+              className="message-search-input"
+              placeholder="Search messages..."
+              value={messageSearch}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+            />
+            {messageSearch.trim() && (
+              <div className="message-search-nav">
+                <span className="message-search-count">
+                  {matchIndices.length > 0
+                    ? `${currentMatchIndex + 1}/${matchIndices.length}`
+                    : "0/0"}
+                </span>
+                <button
+                  type="button"
+                  className="message-search-btn"
+                  onClick={handlePrevMatch}
+                  disabled={matchIndices.length === 0}
+                  title="Previous (Shift+Enter)"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  className="message-search-btn"
+                  onClick={handleNextMatch}
+                  disabled={matchIndices.length === 0}
+                  title="Next (Enter)"
+                >
+                  ▼
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         <MessageRenderer
           messages={filteredMessages}
           showSkillFullContent={includeSkillFullContent}
+          searchQuery={messageSearch}
+          highlightedMessageIndex={
+            matchIndices.length > 0 ? matchIndices[currentMatchIndex] : undefined
+          }
         />
       </div>
     </>

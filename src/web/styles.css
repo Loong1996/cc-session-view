@@ -32,8 +32,8 @@
   --thinking-accent: #94A3B8;
   --thinking-bg: #F1F5F9;
 
-  --font-sans: 'Nunito', -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --font-sans: 'Nunito', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', 'Courier New', monospace;
 
   --space-xs: 4px;
   --space-sm: 8px;

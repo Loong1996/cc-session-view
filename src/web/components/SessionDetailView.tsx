@@ -265,27 +265,29 @@ export function SessionDetailView({
               <span>Stats</span>
             </button>
           </div>
-          <button
-            type="button"
-            className="action-btn"
-            onClick={() => onExport("html", exportOptions)}
-          >
-            📄 HTML
-          </button>
-          <button
-            type="button"
-            className="action-btn"
-            onClick={() => onExport("text", exportOptions)}
-          >
-            📝 Text
-          </button>
-          <button
-            type="button"
-            className="action-btn"
-            onClick={() => onExport("markdown", exportOptions)}
-          >
-            📋 Markdown
-          </button>
+          <div className="export-btns">
+            <button
+              type="button"
+              className="action-btn"
+              onClick={() => onExport("html", exportOptions)}
+            >
+              📄 HTML
+            </button>
+            <button
+              type="button"
+              className="action-btn"
+              onClick={() => onExport("text", exportOptions)}
+            >
+              📝 Text
+            </button>
+            <button
+              type="button"
+              className="action-btn"
+              onClick={() => onExport("markdown", exportOptions)}
+            >
+              📋 Markdown
+            </button>
+          </div>
         </div>
       </div>
 

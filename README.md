@@ -1,5 +1,7 @@
 # Agent Session View
 
+[中文版](./README_zh.md)
+
 A web-based session viewer for browsing, viewing, and exporting conversation history from **Claude Code** and **Codex CLI**.
 
 ## Features

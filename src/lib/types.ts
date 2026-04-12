@@ -43,7 +43,8 @@ export interface SkillCallMeta {
 export interface Message {
   type: MessageType
   content: string
-  timestamp?: Date
+  /** Date when parsed server-side; string when received via JSON API */
+  timestamp?: Date | string
   toolName?: string // For tool_use
   toolId?: string // For tool_use/tool_result
   isSystemMessage?: boolean // System messages (e.g., <system-reminder>, <environment>)

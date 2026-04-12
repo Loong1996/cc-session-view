@@ -21,6 +21,16 @@ import type {
 } from "../lib/types"
 import { defaultExportOptions } from "../lib/types"
 
+function toIso(ts: Date | string | undefined): string | undefined {
+  if (!ts) return undefined
+  return ts instanceof Date ? ts.toISOString() : ts
+}
+
+function toMs(ts: Date | string | undefined): number | undefined {
+  if (!ts) return undefined
+  return ts instanceof Date ? ts.getTime() : new Date(ts).getTime()
+}
+
 // Cache for sessions
 let sessionsCache: {
   claudeCode: SessionSummary[]
@@ -127,7 +137,7 @@ export const apiHandlers = {
       timestamp: session.timestamp.toISOString(),
       messages: session.messages.map((m) => ({
         ...m,
-        timestamp: m.timestamp?.toISOString(),
+        timestamp: toIso(m.timestamp),
       })),
     }
 
@@ -295,7 +305,7 @@ export const apiHandlers = {
       })),
       messages: sortedMessages.map((m) => ({
         ...m,
-        timestamp: m.timestamp?.toISOString(),
+        timestamp: toIso(m.timestamp),
         sessionTimestamp: m.sessionTimestamp.toISOString(),
       })),
     }
@@ -523,8 +533,8 @@ function cwdToSubdir(cwd: string | undefined): string {
 function sortBranchMessages(messages: BranchMessage[]): BranchMessage[] {
   return messages.sort((a, b) => {
     // 1. effectiveTimestamp（messageにtimestampがあればそれ、なければsessionTimestamp）
-    const aTime = a.timestamp?.getTime() ?? a.sessionTimestamp.getTime()
-    const bTime = b.timestamp?.getTime() ?? b.sessionTimestamp.getTime()
+    const aTime = toMs(a.timestamp) ?? a.sessionTimestamp.getTime()
+    const bTime = toMs(b.timestamp) ?? b.sessionTimestamp.getTime()
     if (aTime !== bTime) return aTime - bTime
 
     // 2. sessionTimestamp（セッション開始時刻）

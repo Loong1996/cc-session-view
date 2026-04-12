@@ -1,28 +1,28 @@
 import { useMemo, useState } from "react"
 import { formatTimestamp } from "../../lib/format"
+import {
+  getMessageAbbr,
+  getMessageLabel,
+  groupConsecutiveAssistantMessages,
+} from "../../lib/message-utils"
+import type { Message } from "../../lib/types"
 
-interface SkillCallMeta {
-  skillName: string
-  userInput: string
-  fullContent: string
-}
-
-interface Message {
-  type: "user" | "assistant" | "tool_use" | "tool_result" | "thinking"
-  content: string
-  timestamp?: string
-  toolName?: string
-  toolId?: string
-  isSkillCall?: boolean
-  skillMeta?: SkillCallMeta
-  isContextSummary?: boolean
-}
+// Re-export for consumers that import from here
+export type { Message }
 
 interface MessageRendererProps {
   messages: Message[]
   showSkillFullContent?: boolean
   searchQuery?: string
   highlightedMessageIndex?: number
+  /**
+   * When true, renders static HTML suitable for standalone export:
+   *   - No React state (useState not used for interactions)
+   *   - Expand/collapse driven by data-toggle-msg / data-toggle-group attributes
+   *   - No search highlighting
+   *   - Adds id="msg-{N}" on each article for the embedded toggle script
+   */
+  staticMode?: boolean
 }
 
 interface MessageGroup {
@@ -36,8 +36,12 @@ export function MessageRenderer({
   showSkillFullContent,
   searchQuery,
   highlightedMessageIndex,
+  staticMode = false,
 }: MessageRendererProps) {
-  const groups = useMemo(() => groupConsecutiveAssistantMessages(messages), [messages])
+  const groups = useMemo(
+    () => groupConsecutiveAssistantMessages(messages),
+    [messages],
+  ) as MessageGroup[]
 
   return (
     <div>
@@ -51,6 +55,7 @@ export function MessageRenderer({
               showSkillFullContent={showSkillFullContent}
               searchQuery={searchQuery}
               isHighlighted={highlightedMessageIndex === group.startIndex}
+              staticMode={staticMode}
             />
           )
         }
@@ -62,6 +67,7 @@ export function MessageRenderer({
             showSkillFullContent={showSkillFullContent}
             searchQuery={searchQuery}
             highlightedMessageIndex={highlightedMessageIndex}
+            staticMode={staticMode}
           />
         )
       })}
@@ -105,44 +111,76 @@ function HighlightedText({ text, query }: { text: string; query?: string }) {
   )
 }
 
+function resolveTimestamp(ts: Date | string | undefined): string | null {
+  if (!ts) return null
+  return formatTimestamp(ts instanceof Date ? ts : new Date(ts))
+}
+
 function SingleMessage({
   message,
   messageIndex,
   showSkillFullContent,
   searchQuery,
   isHighlighted,
+  staticMode,
 }: {
   message: Message
   messageIndex: number
   showSkillFullContent?: boolean
   searchQuery?: string
   isHighlighted?: boolean
+  staticMode?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const isLong = message.content.length > 800
   const typeClass = message.type.replace("_", "-")
   const abbr = getMessageAbbr(message.type)
+  const timestamp = resolveTimestamp(message.timestamp)
 
-  const timestamp = message.timestamp
-    ? message.timestamp instanceof Date
-      ? formatTimestamp(message.timestamp)
-      : formatTimestamp(new Date(message.timestamp))
-    : null
-
-  // Render skill call messages specially
   if (message.isSkillCall && message.skillMeta) {
     return (
       <SkillCallMessage
         message={message}
         messageIndex={messageIndex}
         showFullContent={showSkillFullContent}
+        staticMode={staticMode}
       />
     )
   }
 
   const extraClass = message.isContextSummary ? " context-summary" : ""
-  const highlightClass = isHighlighted ? " search-active" : ""
 
+  if (staticMode) {
+    // Static export: driven by data attributes + event delegation script in HTML shell
+    return (
+      <article className={`message ${typeClass}${extraClass}`} id={`msg-${messageIndex}`}>
+        <div className="msg-indicator" title={getMessageLabel(message.type)}>
+          <span className="msg-abbr">{message.isContextSummary ? "📋" : abbr}</span>
+        </div>
+        <div className="msg-main">
+          <div className="msg-meta">
+            {timestamp && <span className="timestamp">{timestamp}</span>}
+            {message.toolName && <code className="tool-tag">{message.toolName}</code>}
+            {isLong && (
+              <button
+                type="button"
+                className="expand-btn"
+                data-toggle-msg={String(messageIndex)}
+                data-expanded="false"
+              >
+                <span className="expand-icon">▼</span>
+              </button>
+            )}
+          </div>
+          <div className={`msg-text${isLong ? " collapsed" : ""}`}>
+            <pre>{message.content}</pre>
+          </div>
+        </div>
+      </article>
+    )
+  }
+
+  const highlightClass = isHighlighted ? " search-active" : ""
   return (
     <article
       className={`message ${typeClass}${extraClass}${highlightClass}`}
@@ -179,24 +217,24 @@ function SkillCallMessage({
   message,
   messageIndex,
   showFullContent,
+  staticMode,
 }: {
   message: Message
   messageIndex: number
   showFullContent?: boolean
+  staticMode?: boolean
 }) {
   const meta = message.skillMeta!
-  const timestamp = message.timestamp
-    ? message.timestamp instanceof Date
-      ? formatTimestamp(message.timestamp)
-      : formatTimestamp(new Date(message.timestamp))
-    : null
-
-  // Keep original type (user/assistant) but add skill-call class for special styling
+  const timestamp = resolveTimestamp(message.timestamp)
   const typeClass = message.type.replace("_", "-")
   const abbr = getMessageAbbr(message.type)
 
   return (
-    <article className={`message ${typeClass} skill-call`} data-msg-index={messageIndex}>
+    <article
+      className={`message ${typeClass} skill-call`}
+      id={staticMode ? `msg-${messageIndex}` : undefined}
+      data-msg-index={staticMode ? undefined : messageIndex}
+    >
       <div className="msg-indicator" title={getMessageLabel(message.type)}>
         <span className="msg-abbr">{abbr}</span>
       </div>
@@ -228,18 +266,62 @@ function ConsecutiveAssistantGroup({
   showSkillFullContent,
   searchQuery,
   highlightedMessageIndex,
+  staticMode,
 }: {
   messages: Message[]
   startIndex: number
   showSkillFullContent?: boolean
   searchQuery?: string
   highlightedMessageIndex?: number
+  staticMode?: boolean
 }) {
   const [showHidden, setShowHidden] = useState(false)
   const hiddenCount = messages.length - 2
   const firstMsg = messages[0]!
   const lastMsg = messages[messages.length - 1]!
   const middleMessages = messages.slice(1, -1)
+  const groupId = `assistant-group-${startIndex}`
+
+  if (staticMode) {
+    return (
+      <>
+        <SingleMessage
+          message={firstMsg}
+          messageIndex={startIndex}
+          showSkillFullContent={showSkillFullContent}
+          staticMode
+        />
+        <div className="hidden-messages-group" id={groupId}>
+          <button
+            type="button"
+            className="show-hidden-btn"
+            data-toggle-group={groupId}
+            data-expanded="false"
+          >
+            <span className="hidden-icon">▶</span>
+            <span className="hidden-count">Show {hiddenCount} messages</span>
+          </button>
+          <div className="hidden-messages-container">
+            {middleMessages.map((msg, idx) => (
+              <SingleMessage
+                key={`hidden-${startIndex + 1 + idx}`}
+                message={msg}
+                messageIndex={startIndex + 1 + idx}
+                showSkillFullContent={showSkillFullContent}
+                staticMode
+              />
+            ))}
+          </div>
+        </div>
+        <SingleMessage
+          message={lastMsg}
+          messageIndex={startIndex + messages.length - 1}
+          showSkillFullContent={showSkillFullContent}
+          staticMode
+        />
+      </>
+    )
+  }
 
   return (
     <>
@@ -285,71 +367,4 @@ function ConsecutiveAssistantGroup({
       />
     </>
   )
-}
-
-function groupConsecutiveAssistantMessages(messages: Message[]): MessageGroup[] {
-  const groups: MessageGroup[] = []
-  let i = 0
-
-  while (i < messages.length) {
-    const msg = messages[i]!
-
-    if (msg.type === "assistant") {
-      // Count consecutive assistant messages
-      const consecutiveMessages: Message[] = [msg]
-      let j = i + 1
-      while (j < messages.length && messages[j]!.type === "assistant") {
-        consecutiveMessages.push(messages[j]!)
-        j++
-      }
-
-      if (consecutiveMessages.length >= 4) {
-        groups.push({
-          type: "consecutive",
-          messages: consecutiveMessages,
-          startIndex: i,
-        })
-      } else {
-        for (let k = 0; k < consecutiveMessages.length; k++) {
-          groups.push({
-            type: "single",
-            messages: [consecutiveMessages[k]!],
-            startIndex: i + k,
-          })
-        }
-      }
-      i = j
-    } else {
-      groups.push({
-        type: "single",
-        messages: [msg],
-        startIndex: i,
-      })
-      i++
-    }
-  }
-
-  return groups
-}
-
-function getMessageLabel(type: string): string {
-  const labels: Record<string, string> = {
-    user: "USER",
-    assistant: "ASSISTANT",
-    tool_use: "TOOL USE",
-    tool_result: "TOOL RESULT",
-    thinking: "THINKING",
-  }
-  return labels[type] || type.toUpperCase()
-}
-
-function getMessageAbbr(type: string): string {
-  const abbrs: Record<string, string> = {
-    user: "用户输入",
-    assistant: "AI输出",
-    tool_use: "工具调用",
-    tool_result: "工具结果",
-    thinking: "思考",
-  }
-  return abbrs[type] || "?"
 }

@@ -112,6 +112,31 @@ bun run dev
 - 函数调用输出
 - 推理块
 
+## 打包为独立可执行文件
+
+Bun 可以将项目编译为单个自包含的可执行文件（已内嵌 Bun 运行时），最终用户无需安装 Bun 即可运行。
+
+```bash
+# 为当前平台构建
+bun build ./src/index.tsx --compile --outfile asv
+
+# 体积更小、启动更快（启用压缩和字节码）
+bun build ./src/index.tsx --compile --minify --bytecode --sourcemap=none --outfile asv
+
+# 运行
+./asv
+```
+
+### 跨平台交叉编译
+
+```bash
+bun build ./src/index.tsx --compile --target=bun-linux-x64    --outfile asv-linux
+bun build ./src/index.tsx --compile --target=bun-darwin-arm64 --outfile asv-macos-arm64
+bun build ./src/index.tsx --compile --target=bun-windows-x64  --outfile asv.exe
+```
+
+由于 Bun 运行时被嵌入到二进制中，产物大小约为 90–110 MB。`styles.css` 等静态资源在编译期被内嵌到二进制内，因此可执行文件可以完全独立分发。
+
 ## 开发
 
 详细的开发环境配置和开发指南请参阅 [DEVELOPER.md](./DEVELOPER.md)。

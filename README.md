@@ -112,6 +112,31 @@ Exported to `./exported/all-sessions-{timestamp}/` directory, organized by proje
 - Function call outputs
 - Reasoning blocks
 
+## Build Standalone Binary
+
+Bun can compile the project into a single self-contained executable that bundles the runtime, so end users don't need Bun installed.
+
+```bash
+# Build for the current platform
+bun build ./src/index.tsx --compile --outfile asv
+
+# Smaller binary with bytecode for faster startup
+bun build ./src/index.tsx --compile --minify --bytecode --sourcemap=none --outfile asv
+
+# Run it
+./asv
+```
+
+### Cross-platform builds
+
+```bash
+bun build ./src/index.tsx --compile --target=bun-linux-x64    --outfile asv-linux
+bun build ./src/index.tsx --compile --target=bun-darwin-arm64 --outfile asv-macos-arm64
+bun build ./src/index.tsx --compile --target=bun-windows-x64  --outfile asv.exe
+```
+
+The resulting binary is ~90–110 MB because the Bun runtime is embedded. Static assets like `styles.css` are embedded at compile time, so the executable is fully portable.
+
 ## Development
 
 See [DEVELOPER.md](./DEVELOPER.md) for detailed setup instructions and development guide.

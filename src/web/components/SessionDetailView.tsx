@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { useTogglesState } from "../hooks/useLocalStorageState"
 import { MessageRenderer } from "./MessageRenderer"
 import { SessionStats } from "./SessionStats"
 
@@ -63,13 +64,16 @@ export function SessionDetailView({
   onExport,
   onBranchClick,
 }: SessionDetailViewProps) {
-  const [showToolMessages, setShowToolMessages] = useState(false)
-  const [showSystemMessages, setShowSystemMessages] = useState(false)
-  const [showThinkingMessages, setShowThinkingMessages] = useState(false)
-  const [includeSkillFullContent, setIncludeSkillFullContent] = useState(false)
-  const [showContextSummary, setShowContextSummary] = useState(false)
-  const [showStats, setShowStats] = useState(false)
-  const [embedFonts, setEmbedFonts] = useState(false)
+  const [toggles, setToggles] = useTogglesState()
+  const {
+    showToolMessages,
+    showSystemMessages,
+    showThinkingMessages,
+    includeSkillFullContent,
+    showContextSummary,
+    showStats,
+    embedFonts,
+  } = toggles
 
   // Message search state
   const [messageSearch, setMessageSearch] = useState("")
@@ -236,7 +240,7 @@ export function SessionDetailView({
             <button
               type="button"
               className={`toggle-chip ${showSystemMessages ? "active" : ""}`}
-              onClick={() => setShowSystemMessages(!showSystemMessages)}
+              onClick={() => setToggles({ showSystemMessages: !showSystemMessages })}
             >
               <span className="chip-icon">⚙</span>
               <span>System</span>
@@ -244,7 +248,7 @@ export function SessionDetailView({
             <button
               type="button"
               className={`toggle-chip ${showThinkingMessages ? "active" : ""}`}
-              onClick={() => setShowThinkingMessages(!showThinkingMessages)}
+              onClick={() => setToggles({ showThinkingMessages: !showThinkingMessages })}
             >
               <span className="chip-icon">💭</span>
               <span>Thinking</span>
@@ -252,7 +256,7 @@ export function SessionDetailView({
             <button
               type="button"
               className={`toggle-chip ${showToolMessages ? "active" : ""}`}
-              onClick={() => setShowToolMessages(!showToolMessages)}
+              onClick={() => setToggles({ showToolMessages: !showToolMessages })}
             >
               <span className="chip-icon">🔧</span>
               <span>Tools</span>
@@ -260,7 +264,7 @@ export function SessionDetailView({
             <button
               type="button"
               className={`toggle-chip ${includeSkillFullContent ? "active" : ""}`}
-              onClick={() => setIncludeSkillFullContent(!includeSkillFullContent)}
+              onClick={() => setToggles({ includeSkillFullContent: !includeSkillFullContent })}
             >
               <span className="chip-icon">📜</span>
               <span>Skill Full</span>
@@ -268,7 +272,7 @@ export function SessionDetailView({
             <button
               type="button"
               className={`toggle-chip ${showContextSummary ? "active" : ""}`}
-              onClick={() => setShowContextSummary(!showContextSummary)}
+              onClick={() => setToggles({ showContextSummary: !showContextSummary })}
             >
               <span className="chip-icon">📋</span>
               <span>Context Summary</span>
@@ -276,7 +280,7 @@ export function SessionDetailView({
             <button
               type="button"
               className={`toggle-chip ${showStats ? "active" : ""}`}
-              onClick={() => setShowStats(!showStats)}
+              onClick={() => setToggles({ showStats: !showStats })}
             >
               <span className="chip-icon">📊</span>
               <span>Stats</span>
@@ -287,7 +291,7 @@ export function SessionDetailView({
               <input
                 type="checkbox"
                 checked={embedFonts}
-                onChange={(e) => setEmbedFonts(e.target.checked)}
+                onChange={(e) => setToggles({ embedFonts: e.target.checked })}
               />
               <span>内嵌字体（离线可用）</span>
             </label>

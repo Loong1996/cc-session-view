@@ -40,6 +40,14 @@ interface ExportOptions {
   includeSystemMessages: boolean
   includeSkillFullContent: boolean
   includeContextSummary: boolean
+  embedFonts?: boolean
+  initialToggles?: {
+    showSystem: boolean
+    showThinking: boolean
+    showTools: boolean
+    showSkillFull: boolean
+    showContextSummary: boolean
+  }
 }
 
 interface SessionDetailViewProps {
@@ -61,6 +69,7 @@ export function SessionDetailView({
   const [includeSkillFullContent, setIncludeSkillFullContent] = useState(false)
   const [showContextSummary, setShowContextSummary] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [embedFonts, setEmbedFonts] = useState(false)
 
   // Message search state
   const [messageSearch, setMessageSearch] = useState("")
@@ -162,6 +171,14 @@ export function SessionDetailView({
     includeSystemMessages: showSystemMessages,
     includeSkillFullContent,
     includeContextSummary: showContextSummary,
+    embedFonts,
+    initialToggles: {
+      showSystem: showSystemMessages,
+      showThinking: showThinkingMessages,
+      showTools: showToolMessages,
+      showSkillFull: includeSkillFullContent,
+      showContextSummary: showContextSummary,
+    },
   }
 
   return (
@@ -266,6 +283,14 @@ export function SessionDetailView({
             </button>
           </div>
           <div className="export-btns">
+            <label className="embed-fonts-label">
+              <input
+                type="checkbox"
+                checked={embedFonts}
+                onChange={(e) => setEmbedFonts(e.target.checked)}
+              />
+              <span>内嵌字体（离线可用）</span>
+            </label>
             <button
               type="button"
               className="action-btn"

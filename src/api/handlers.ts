@@ -207,12 +207,14 @@ export const apiHandlers = {
         includeSystemMessages: options?.includeSystemMessages ?? false,
         includeSkillFullContent: options?.includeSkillFullContent ?? false,
         includeContextSummary: options?.includeContextSummary ?? false,
+        embedFonts: options?.embedFonts ?? false,
+        initialToggles: options?.initialToggles,
       }
 
       // Export
       const content =
         format === "html"
-          ? exportToHtml(session, exportOptions)
+          ? await exportToHtml(session, exportOptions)
           : format === "markdown"
             ? exportToMarkdown(session, exportOptions)
             : exportToText(session, exportOptions)
@@ -372,7 +374,7 @@ export const apiHandlers = {
 
               const content =
                 format === "html"
-                  ? exportToHtml(session, exportOptions)
+                  ? await exportToHtml(session, exportOptions)
                   : format === "markdown"
                     ? exportToMarkdown(session, exportOptions)
                     : exportToText(session, exportOptions)
@@ -490,12 +492,14 @@ export const apiHandlers = {
         includeSystemMessages: options?.includeSystemMessages ?? false,
         includeSkillFullContent: options?.includeSkillFullContent ?? false,
         includeContextSummary: options?.includeContextSummary ?? false,
+        embedFonts: options?.embedFonts ?? false,
+        initialToggles: options?.initialToggles,
       }
 
       // Export
       const content =
         format === "html"
-          ? exportBranchToHtml(branchName, branchSessions, sortedMessages, exportOptions)
+          ? await exportBranchToHtml(branchName, branchSessions, sortedMessages, exportOptions)
           : format === "markdown"
             ? exportBranchToMarkdown(branchName, branchSessions, sortedMessages, exportOptions)
             : exportBranchToText(branchName, branchSessions, sortedMessages, exportOptions)

@@ -75,6 +75,16 @@ export interface ExportOptions {
   includeSystemMessages: boolean
   includeSkillFullContent: boolean
   includeContextSummary: boolean
+  /** When true, embed Nunito + JetBrains Mono fonts as base64 @font-face (offline-capable) */
+  embedFonts?: boolean
+  /** Initial toggle state for interactive HTML export; keys match the toggle chips */
+  initialToggles?: {
+    showSystem: boolean
+    showThinking: boolean
+    showTools: boolean
+    showSkillFull: boolean
+    showContextSummary: boolean
+  }
 }
 
 export const defaultExportOptions: ExportOptions = {
@@ -85,6 +95,7 @@ export const defaultExportOptions: ExportOptions = {
   includeSystemMessages: false,
   includeSkillFullContent: false,
   includeContextSummary: false,
+  embedFonts: false,
 }
 
 /** ブランチ統合表示用のメッセージ */

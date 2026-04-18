@@ -1207,7 +1207,35 @@ body::before {
 .export-btns {
   display: flex;
   flex-direction: row;
+  align-items: center;
   gap: var(--space-sm);
+}
+
+.embed-fonts-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.embed-fonts-label input[type="checkbox"] {
+  accent-color: var(--peko-blue);
+  cursor: pointer;
+}
+
+/* Sticky filter bar shown in exported HTML above message list */
+.export-filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-base);
+  padding: var(--space-sm) 0;
+  margin-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .toggle-chip {

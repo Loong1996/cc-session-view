@@ -6,6 +6,31 @@ import { formatTimestamp } from "./format"
 import { escapeHtml, filterBranchMessages, filterMessages, getMessageLabel } from "./message-utils"
 import type { BranchMessage, ExportOptions, SessionDetail } from "./types"
 
+// ─── Font embedding ────────────────────────────────────────────────────────────
+
+function toBase64(buf: ArrayBuffer): string {
+  let bin = ""
+  const bytes = new Uint8Array(buf)
+  for (const b of bytes) bin += String.fromCharCode(b)
+  return btoa(bin)
+}
+
+async function buildFontFaceCSS(): Promise<string> {
+  const nunitoFile = Bun.file(new URL("../web/fonts/nunito-latin.woff2", import.meta.url).pathname)
+  const jbFile = Bun.file(
+    new URL("../web/fonts/jetbrains-mono-latin.woff2", import.meta.url).pathname,
+  )
+  const [nunitoBuf, jbBuf] = await Promise.all([nunitoFile.arrayBuffer(), jbFile.arrayBuffer()])
+  const nunitoB64 = toBase64(nunitoBuf)
+  const jbB64 = toBase64(jbBuf)
+  const nunitoSrc = `url('data:font/woff2;base64,${nunitoB64}') format('woff2')`
+  const jbSrc = `url('data:font/woff2;base64,${jbB64}') format('woff2')`
+  return `
+@font-face { font-family: 'Nunito'; font-weight: 400 700; font-style: normal; src: ${nunitoSrc}; }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 400 600; font-style: normal; src: ${jbSrc}; }
+`
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** Branch session info for export */
@@ -180,6 +205,70 @@ document.addEventListener('click', function(e) {
 });
 `
 
+/**
+ * Interactive filter toggle script. Reads chip buttons with data-filter-toggle
+ * and reflects state onto document.body dataset, which CSS uses to show/hide messages.
+ */
+const FILTER_TOGGLE_SCRIPT = `
+(function() {
+  var chips = document.querySelectorAll('[data-filter-toggle]');
+  chips.forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      var key = chip.getAttribute('data-filter-toggle');
+      var active = chip.classList.toggle('active');
+      document.body.dataset[key] = String(active);
+    });
+  });
+})();
+`
+
+/** CSS rules to hide messages based on body dataset toggles set by FILTER_TOGGLE_SCRIPT. */
+const FILTER_TOGGLE_CSS = `
+body:not([data-show-system="true"]) [data-msg-type="system"] { display: none; }
+body:not([data-show-thinking="true"]) [data-msg-type="thinking"] { display: none; }
+body:not([data-show-tools="true"]) [data-msg-type="tool_use"],
+body:not([data-show-tools="true"]) [data-msg-type="tool_result"] { display: none; }
+body:not([data-show-skill-full="true"]) [data-msg-type="skill-full"] { display: none; }
+body:not([data-show-context-summary="true"]) [data-msg-type="context-summary"] { display: none; }
+`
+
+/** Inline toggle bar HTML inserted at the top of the exported page. */
+function buildFilterBar(opts: {
+  showSystem: boolean
+  showThinking: boolean
+  showTools: boolean
+  showSkillFull: boolean
+  showContextSummary: boolean
+}): string {
+  const chip = (key: string, icon: string, label: string, active: boolean) =>
+    `<button type="button" class="toggle-chip${active ? " active" : ""}" data-filter-toggle="${key}">${icon} ${label}</button>`
+
+  return `<div class="toggle-chips export-filter-bar">
+  ${chip("showSystem", "⚙", "System", opts.showSystem)}
+  ${chip("showThinking", "💭", "Thinking", opts.showThinking)}
+  ${chip("showTools", "🔧", "Tools", opts.showTools)}
+  ${chip("showSkillFull", "📜", "Skill Full", opts.showSkillFull)}
+  ${chip("showContextSummary", "📋", "Context Summary", opts.showContextSummary)}
+</div>`
+}
+
+/** Build body dataset attributes for initial toggle state. */
+function buildBodyDataset(opts: {
+  showSystem: boolean
+  showThinking: boolean
+  showTools: boolean
+  showSkillFull: boolean
+  showContextSummary: boolean
+}): string {
+  return [
+    `data-show-system="${opts.showSystem}"`,
+    `data-show-thinking="${opts.showThinking}"`,
+    `data-show-tools="${opts.showTools}"`,
+    `data-show-skill-full="${opts.showSkillFull}"`,
+    `data-show-context-summary="${opts.showContextSummary}"`,
+  ].join(" ")
+}
+
 /** Page-shell CSS not present in styles.css (specific to standalone export layout). */
 const SHELL_CSS = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -292,24 +381,38 @@ function htmlShell(opts: {
   headerHtml: string
   messagesHtml: string
   messageCount: number
+  fontFaceCSS?: string
+  filterBarHtml?: string
+  bodyDataset?: string
 }): string {
+  const fontLinks = opts.fontFaceCSS
+    ? ""
+    : `  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">`
+  const fontFaceBlock = opts.fontFaceCSS ? opts.fontFaceCSS : ""
+  const bodyAttrs = opts.bodyDataset ? ` ${opts.bodyDataset}` : ""
+  const filterBar = opts.filterBarHtml ?? ""
+  const filterScript = opts.filterBarHtml ? `<script>${FILTER_TOGGLE_SCRIPT}</script>` : ""
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${opts.title}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+${fontLinks}
   <style>
+${fontFaceBlock}
 ${exportStyles}
 ${SHELL_CSS}
+${FILTER_TOGGLE_CSS}
   </style>
 </head>
-<body>
+<body${bodyAttrs}>
   <div class="page">
     ${opts.headerHtml}
+    ${filterBar}
     <section class="msg-section">
       <div class="msg-count">${opts.messageCount} messages</div>
       ${opts.messagesHtml}
@@ -317,22 +420,37 @@ ${SHELL_CSS}
     <footer class="ftr">Generated by Agent Session Viewer</footer>
   </div>
   <script>${TOGGLE_SCRIPT}</script>
+  ${filterScript}
 </body>
 </html>`
 }
 
 /** Export to HTML format */
-export function exportToHtml(session: SessionDetail, options: ExportOptions): string {
-  const filtered = filterMessages(session.messages, options)
+export async function exportToHtml(
+  session: SessionDetail,
+  options: ExportOptions,
+): Promise<string> {
   const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI"
 
+  // Resolve toggle initial state (defaults: all hidden)
+  const toggles = options.initialToggles ?? {
+    showSystem: options.includeSystemMessages,
+    showThinking: options.includeThinking,
+    showTools: options.includeToolUse,
+    showSkillFull: options.includeSkillFullContent,
+    showContextSummary: options.includeContextSummary,
+  }
+
+  // Full SSR: render all messages; CSS + JS will handle visibility toggling
   const messagesHtml = renderToStaticMarkup(
     createElement(MessageRenderer, {
-      messages: filtered,
+      messages: session.messages,
       staticMode: true,
-      showSkillFullContent: options.includeSkillFullContent,
+      showSkillFullContent: true,
     }),
   )
+
+  const fontFaceCSS = options.embedFonts ? await buildFontFaceCSS() : undefined
 
   const headerHtml = `
     <header class="hdr">
@@ -357,7 +475,10 @@ export function exportToHtml(session: SessionDetail, options: ExportOptions): st
     title: `${agentLabel} Session`,
     headerHtml,
     messagesHtml,
-    messageCount: filtered.length,
+    messageCount: session.messages.length,
+    fontFaceCSS,
+    filterBarHtml: buildFilterBar(toggles),
+    bodyDataset: buildBodyDataset(toggles),
   })
 }
 
@@ -504,20 +625,28 @@ const BRANCH_BOUNDARY_CSS = `
 `
 
 /** Export branch to HTML format */
-export function exportBranchToHtml(
+export async function exportBranchToHtml(
   branchName: string,
   sessions: BranchSession[],
   messages: BranchMessage[],
   options: ExportOptions,
-): string {
+): Promise<string> {
   const messagesBySession = groupBySession(messages)
   let totalCount = 0
   const sectionParts: string[] = []
 
+  const toggles = options.initialToggles ?? {
+    showSystem: options.includeSystemMessages,
+    showThinking: options.includeThinking,
+    showTools: options.includeToolUse,
+    showSkillFull: options.includeSkillFullContent,
+    showContextSummary: options.includeContextSummary,
+  }
+
   for (const session of sessions) {
     const sessionMessages = messagesBySession.get(session.id) ?? []
-    const filtered = filterBranchMessages(sessionMessages, options)
-    if (filtered.length === 0) continue
+    // Full SSR: render all messages; CSS toggles handle visibility
+    if (sessionMessages.length === 0) continue
 
     const agentLabel = session.agentType === "claude-code" ? "Claude Code" : "Codex CLI"
     const ts = session.timestamp.toLocaleString("ja-JP")
@@ -531,15 +660,22 @@ export function exportBranchToHtml(
 
     const msgsHtml = renderToStaticMarkup(
       createElement(MessageRenderer, {
-        messages: filtered,
+        messages: sessionMessages,
         staticMode: true,
-        showSkillFullContent: options.includeSkillFullContent,
+        showSkillFullContent: true,
       }),
     )
 
     sectionParts.push(boundaryHtml + msgsHtml)
-    totalCount += filtered.length
+    totalCount += sessionMessages.length
   }
+
+  const fontFaceCSS = options.embedFonts ? await buildFontFaceCSS() : undefined
+  const fontLinks = fontFaceCSS
+    ? ""
+    : `  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">`
 
   const branchBadgeCss = `
     .hdr-badge { background: linear-gradient(135deg, var(--leaf-green) 0%, #1a6b1a 100%); box-shadow: 0 2px 8px rgba(34,139,34,0.25); }
@@ -563,25 +699,29 @@ export function exportBranchToHtml(
       </div>
     </header>`
 
+  const bodyDataset = buildBodyDataset(toggles)
+  const filterBar = buildFilterBar(toggles)
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Branch: ${escapeHtml(branchName)}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+${fontLinks}
   <style>
+${fontFaceCSS ?? ""}
 ${exportStyles}
 ${SHELL_CSS}
 ${BRANCH_BOUNDARY_CSS}
+${FILTER_TOGGLE_CSS}
 ${branchBadgeCss}
   </style>
 </head>
-<body>
+<body ${bodyDataset}>
   <div class="page">
     ${headerHtml}
+    ${filterBar}
     <section class="msg-section">
       <div class="msg-count">${totalCount} messages</div>
       ${sectionParts.join("\n")}
@@ -589,6 +729,7 @@ ${branchBadgeCss}
     <footer class="ftr">Generated by Agent Session Viewer</footer>
   </div>
   <script>${TOGGLE_SCRIPT}</script>
+  <script>${FILTER_TOGGLE_SCRIPT}</script>
 </body>
 </html>`
 }

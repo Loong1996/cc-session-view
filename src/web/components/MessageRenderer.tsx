@@ -151,9 +151,19 @@ function SingleMessage({
   const extraClass = message.isContextSummary ? " context-summary" : ""
 
   if (staticMode) {
+    // Compute data-msg-type for interactive toggle filtering in exported HTML
+    let msgType: string = message.type
+    if (message.isSystemMessage) msgType = "system"
+    else if (message.isContextSummary) msgType = "context-summary"
+    else if (message.isSkillCall) msgType = "skill-full"
+
     // Static export: driven by data attributes + event delegation script in HTML shell
     return (
-      <article className={`message ${typeClass}${extraClass}`} id={`msg-${messageIndex}`}>
+      <article
+        className={`message ${typeClass}${extraClass}`}
+        id={`msg-${messageIndex}`}
+        data-msg-type={msgType}
+      >
         <div className="msg-indicator" title={getMessageLabel(message.type)}>
           <span className="msg-abbr">{message.isContextSummary ? "📋" : abbr}</span>
         </div>
@@ -234,6 +244,7 @@ function SkillCallMessage({
       className={`message ${typeClass} skill-call`}
       id={staticMode ? `msg-${messageIndex}` : undefined}
       data-msg-index={staticMode ? undefined : messageIndex}
+      data-msg-type={staticMode ? "skill-full" : undefined}
     >
       <div className="msg-indicator" title={getMessageLabel(message.type)}>
         <span className="msg-abbr">{abbr}</span>
